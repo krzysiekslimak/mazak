@@ -17,11 +17,11 @@ Mazak **nie robi zrzutów ekranu** — do tego służy natywne narzędzie Twojeg
 - **Naklejki** — 6 gotowych symboli (wykrzyknik, znak zapytania, ptaszek, krzyżyk, gwiazdka, ostrzeżenie), kolor, rozmiar, cień
 - **Rozmycie/pikselizacja** — przeciągnij po wrażliwych danych (hasła, maile), żeby je zasłonić, z regulowaną intensywnością
 - **Przycinanie** — zaznacz obszar przeciągnięciem, potem zastosuj lub anuluj; istniejące elementy są odpowiednio przesuwane lub usuwane
-- Kliknięcie już postawionego elementu narzędziem **Zaznacz** ponownie pokazuje jego panel — można edytować na żywo bez rysowania od nowa
+- Kliknięcie już postawionego elementu narzędziem **Zaznacz** ponownie pokazuje jego panel — można edytować na żywo bez rysowania od nowa; panel pływa nad płótnem zamiast zmieniać jego rozmiar, a zaznaczony element wskakuje na wierzch niezależnie od kolejności rysowania
 - **Wklejanie ze schowka** (Ctrl+V) i **kopiowanie wyniku do schowka** (Ctrl+C) — oba działają tylko gdy płótno ma fokus, więc nie kolidują z polami tekstowymi w panelach
 - Wielopoziomowy **undo/redo** (Ctrl+Z / Ctrl+Shift+Z) obejmujący dodawanie, usuwanie i edycję elementów
-- **Interfejs po polsku/angielsku**, przełączany na żywo z toolbara (ikona globusa), zapamiętywany między sesjami
-- Powiększanie/pomniejszanie/dopasowanie (toolbar, Ctrl+scroll albo Ctrl+/Ctrl-), z gładkim (niepikselowanym) skalowaniem obrazu
+- **Interfejs po polsku/angielsku** (domyślnie angielski), przełączany na żywo z toolbara (ikona globusa), zapamiętywany między sesjami
+- Powiększanie/pomniejszanie/dopasowanie (toolbar, Ctrl+scroll albo Ctrl+/Ctrl-) z gładkim (niepikselowanym) skalowaniem obrazu, oraz przesuwanie płótna środkowym przyciskiem myszy
 - Eksport spłaszczony do PNG, zapamiętywanie ostatnio używanego folderu (otwieranie i eksport osobno)
 
 ## Instalacja

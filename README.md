@@ -17,11 +17,11 @@ Mazak **does not take screenshots** — use your system's native tool for that (
 - **Stickers** — 6 ready-made symbols (exclamation, question mark, check, cross, star, warning), color, size, shadow
 - **Blur/pixelate** — drag over sensitive info (passwords, emails) to redact it, adjustable pixelation strength
 - **Crop** — drag to select an area, then apply or cancel; existing elements are repositioned or removed accordingly
-- Clicking an already-placed element with the **Select** tool re-opens its properties panel — edit it live without redrawing
+- Clicking an already-placed element with the **Select** tool re-opens its properties panel — edit it live without redrawing; the panel floats over the canvas instead of resizing it, and the selected element is brought to the front regardless of draw order
 - **Paste from clipboard** (Ctrl+V) and **copy result to clipboard** (Ctrl+C) — both scoped to when the canvas has focus, so they never fight with text fields in the panels
 - Multi-step **undo/redo** (Ctrl+Z / Ctrl+Shift+Z) covering adding, deleting, and editing elements
-- **Polish/English interface**, switchable live from the toolbar (globe icon), remembered between sessions
-- Zoom in/out/fit (toolbar, Ctrl+scroll, or Ctrl+/Ctrl-), with smooth (non-pixelated) image scaling
+- **Polish/English interface** (English by default), switchable live from the toolbar (globe icon), remembered between sessions
+- Zoom in/out/fit (toolbar, Ctrl+scroll, or Ctrl+/Ctrl-) with smooth (non-pixelated) image scaling, and middle-mouse-button panning
 - Flattened PNG export, remembers the last-used folder (open and export tracked separately)
 
 ## Installation
