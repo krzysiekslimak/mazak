@@ -1,6 +1,6 @@
 import os
 
-from PySide6.QtCore import QSettings, QSize, Qt
+from PySide6.QtCore import QEvent, QSettings, QSize, Qt
 from PySide6.QtGui import QAction, QActionGroup, QKeySequence
 from PySide6.QtWidgets import QFileDialog, QLabel, QMainWindow, QMessageBox, QToolBar, QVBoxLayout, QWidget
 
@@ -102,18 +102,20 @@ class MainWindow(QMainWindow):
         layout = QVBoxLayout(container)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
+        layout.addWidget(self.view)
+        self.setCentralWidget(container)
 
-        panel_wrap = QWidget(self)
+        # Pływający panel narzędzia - dziecko widoku (nie układu), żeby nie
+        # zmieniał rozmiaru/dopasowania płótna przy pokazywaniu/ukrywaniu.
+        panel_wrap = QWidget(self.view)
         panel_wrap_layout = QVBoxLayout(panel_wrap)
         panel_wrap_layout.setContentsMargins(12, 10, 12, 10)
         for panel in self._panels:
             panel_wrap_layout.addWidget(panel)
         self.panel_wrap = panel_wrap
         self.panel_wrap.setVisible(False)
-
-        layout.addWidget(panel_wrap)
-        layout.addWidget(self.view)
-        self.setCentralWidget(container)
+        self.view.installEventFilter(self)
+        self._position_panel_wrap()
 
         self.current_path = None
         self._selected_item = None
@@ -132,6 +134,15 @@ class MainWindow(QMainWindow):
     def _retranslate(self, _lang=None):
         for fn in self._retranslations:
             fn()
+
+    def eventFilter(self, obj, event):
+        if obj is self.view and event.type() == QEvent.Type.Resize:
+            self._position_panel_wrap()
+        return super().eventFilter(obj, event)
+
+    def _position_panel_wrap(self):
+        height = self.panel_wrap.sizeHint().height()
+        self.panel_wrap.setGeometry(0, 0, self.view.width(), height)
 
     def _toggle_language(self):
         translator.set_language("en" if translator.language() == "pl" else "pl")
@@ -281,6 +292,9 @@ class MainWindow(QMainWindow):
         for panel in self._panels:
             panel.setVisible(panel is panel_to_show)
         self.panel_wrap.setVisible(panel_to_show is not None)
+        if panel_to_show is not None:
+            self._position_panel_wrap()
+            self.panel_wrap.raise_()
 
     def _push_property_edit(self, setter, old_value, new_value):
         if old_value == new_value:
