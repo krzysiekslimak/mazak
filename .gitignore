@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.pyc
+build/
+dist/
+*.deb
+packaging/mazak_pkgroot/
+packaging/build-venv/
