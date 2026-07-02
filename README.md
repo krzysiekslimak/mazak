@@ -4,7 +4,7 @@
 
 A lightweight screenshot annotation editor (mockups, documentation, feedback) — arrows, speech bubbles, text, frames, stickers, blur/pixelate, and crop, each with a live panel for color, thickness, shape, and shadow. Built with Python / PySide6 (Qt6), a native Linux desktop app.
 
-![Mazak screenshot](docs/screenshot.png)
+![Mazak demo](docs/demo.gif)
 
 Mazak **does not take screenshots** — use your system's native tool for that (e.g. `Shift+Print Screen` on GNOME). Mazak opens an already-captured image (from a file or straight from the clipboard) and lets you mark it up.
 
@@ -35,6 +35,17 @@ sudo apt install ./mazak_*.deb
 ```
 
 The package bundles its own, self-contained PySide6 — no internet access is needed at install time. After installing, you'll find "Mazak" in your application menu.
+
+### AppImage (any distro)
+
+Download the latest `.AppImage` file from the [Releases](../../releases) page, make it executable, and run it:
+
+```bash
+chmod +x Mazak-*.AppImage
+./Mazak-*.AppImage
+```
+
+No installation step needed — it's a single self-contained file, useful on non-Debian distros or if you'd rather not install anything system-wide.
 
 ### From source
 

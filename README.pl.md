@@ -4,7 +4,7 @@
 
 Lekki edytor do adnotowania zrzutów ekranu (mockupy, dokumentacja, feedback) — strzałki, dymki, tekst, ramki, naklejki, rozmycie/pikselizacja i przycinanie, każdy z panelem konfiguracji koloru, grubości, kształtu i cienia. Napisany w Pythonie / PySide6 (Qt6), natywna aplikacja na Linuksa.
 
-![Zrzut ekranu Mazaka](docs/screenshot.png)
+![Demo Mazaka](docs/demo.gif)
 
 Mazak **nie robi zrzutów ekranu** — do tego służy natywne narzędzie Twojego systemu (np. `Shift+Print Screen` na GNOME). Mazak otwiera już zrobiony obraz (z pliku albo prosto ze schowka) i pozwala go oznaczyć.
 
@@ -35,6 +35,17 @@ sudo apt install ./mazak_*.deb
 ```
 
 Pakiet zawiera własny, samodzielny zestaw PySide6 — nie wymaga niczego dodatkowego z internetu podczas instalacji. Po instalacji znajdziesz „Mazak” w menu aplikacji.
+
+### AppImage (dowolna dystrybucja)
+
+Pobierz najnowszy plik `.AppImage` z zakładki [Releases](../../releases), nadaj uprawnienia do uruchamiania i odpal:
+
+```bash
+chmod +x Mazak-*.AppImage
+./Mazak-*.AppImage
+```
+
+Bez instalacji — to jeden, samodzielny plik, przydatny na dystrybucjach innych niż Debian/Ubuntu albo gdy nie chcesz niczego instalować systemowo.
 
 ### Ze źródeł
 
