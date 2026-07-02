@@ -41,14 +41,19 @@ find "$APPDIR/opt/mazak/venv" -name "__pycache__" -type d -exec rm -rf {} + 2>/d
 
 cp "$PROJECT_ROOT/mazak_icon.png" "$APPDIR/mazak.png"
 
-echo "==> Dolaczanie bibliotek systemowych, ktorych Qt xcb potrzebuje, a ktorych"
-echo "    nie mozna zalozyc na obcej maszynie (libxcb-cursor0, libxkbcommon-x11-0)"
+echo "==> Dolaczanie bibliotek systemowych wymaganych przez Qt xcb (nie mozna"
+echo "    zalozyc, ze sa obecne na obcej maszynie - patrz Depends libqt6gui6t64"
+echo "    plus libxcb-cursor0, ktorego Qt >=6.5 dodatkowo wymaga)"
 LIBDIR="$APPDIR/usr/lib/x86_64-linux-gnu"
 mkdir -p "$LIBDIR"
 EXTRA_LIBS_DIR="$SCRIPT_DIR/extra-libs"
 mkdir -p "$EXTRA_LIBS_DIR"
 pushd "$EXTRA_LIBS_DIR" > /dev/null
-for pkg in libxcb-cursor0 libxkbcommon-x11-0; do
+XCB_PKGS="libxcb-cursor0 libxkbcommon-x11-0 libxkbcommon0 libx11-6 libx11-xcb1 \
+libxcb1 libxcb-glx0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
+libxcb-render-util0 libxcb-render0 libxcb-shape0 libxcb-shm0 libxcb-sync1 \
+libxcb-xfixes0 libxcb-xkb1"
+for pkg in $XCB_PKGS; do
     if ! ls "${pkg}"_*.deb >/dev/null 2>&1; then
         apt-get download "$pkg"
     fi
