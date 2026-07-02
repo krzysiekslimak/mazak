@@ -41,8 +41,8 @@ The package bundles its own, self-contained PySide6 — no internet access is ne
 Download the latest `.AppImage` file from the [Releases](../../releases) page, make it executable, and run it:
 
 ```bash
-chmod +x Mazak-*.AppImage
-./Mazak-*.AppImage
+chmod +x mazak-*.AppImage
+./mazak-*.AppImage
 ```
 
 No installation step needed — it's a single self-contained file, useful on non-Debian distros or if you'd rather not install anything system-wide.

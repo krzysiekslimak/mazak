@@ -41,6 +41,7 @@ find "$APPDIR/opt/mazak/venv" -name "__pycache__" -type d -exec rm -rf {} + 2>/d
 
 cp "$PROJECT_ROOT/mazak_icon.png" "$APPDIR/mazak.png"
 
+mkdir -p "$APPDIR/usr/share/applications"
 cat > "$APPDIR/mazak.desktop" << 'EOF'
 [Desktop Entry]
 Type=Application
@@ -51,6 +52,38 @@ Icon=mazak
 Terminal=false
 Categories=Graphics;2DGraphics;RasterGraphics;
 EOF
+cp "$APPDIR/mazak.desktop" "$APPDIR/usr/share/applications/mazak.desktop"
+
+mkdir -p "$APPDIR/usr/share/metainfo"
+cat > "$APPDIR/usr/share/metainfo/io.github.krzysiekslimak.Mazak.appdata.xml" << EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.krzysiekslimak.Mazak</id>
+  <name>Mazak</name>
+  <summary>Screenshot annotation editor</summary>
+  <metadata_license>MIT</metadata_license>
+  <project_license>MIT</project_license>
+  <description>
+    <p>
+      Mazak is a lightweight screenshot annotation editor for Linux - arrows,
+      speech bubbles, text, frames, stickers, blur/pixelate, and crop tools,
+      each with a live properties panel that floats over the canvas.
+    </p>
+  </description>
+  <launchable type="desktop-id">mazak.desktop</launchable>
+  <url type="homepage">https://github.com/krzysiekslimak/mazak</url>
+  <developer id="io.github.krzysiekslimak">
+    <name>Krzysztof Ślimak</name>
+  </developer>
+  <provides>
+    <binary>mazak</binary>
+  </provides>
+  <releases>
+    <release version="$VERSION" date="$(date +%Y-%m-%d)"/>
+  </releases>
+  <content_rating type="oars-1.1"/>
+</component>
+EOF
 
 cat > "$APPDIR/AppRun" << 'EOF'
 #!/usr/bin/env bash
@@ -59,7 +92,11 @@ exec "$HERE/opt/mazak/venv/bin/python" "$HERE/opt/mazak/main.py" "$@"
 EOF
 chmod +x "$APPDIR/AppRun"
 
-APPIMAGE_FILE="$DIST_DIR/Mazak-${VERSION}-${ARCH}.AppImage"
+echo "==> Walidacja pliku .desktop i metainfo"
+desktop-file-validate "$APPDIR/mazak.desktop"
+appstreamcli validate --no-net "$APPDIR/usr/share/metainfo/io.github.krzysiekslimak.Mazak.appdata.xml" || true
+
+APPIMAGE_FILE="$DIST_DIR/mazak-${VERSION}-${ARCH}.AppImage"
 echo "==> Budowanie $APPIMAGE_FILE"
 ARCH="$ARCH" "$APPIMAGETOOL" "$APPDIR" "$APPIMAGE_FILE"
 

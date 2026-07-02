@@ -41,8 +41,8 @@ Pakiet zawiera własny, samodzielny zestaw PySide6 — nie wymaga niczego dodatk
 Pobierz najnowszy plik `.AppImage` z zakładki [Releases](../../releases), nadaj uprawnienia do uruchamiania i odpal:
 
 ```bash
-chmod +x Mazak-*.AppImage
-./Mazak-*.AppImage
+chmod +x mazak-*.AppImage
+./mazak-*.AppImage
 ```
 
 Bez instalacji — to jeden, samodzielny plik, przydatny na dystrybucjach innych niż Debian/Ubuntu albo gdy nie chcesz niczego instalować systemowo.
