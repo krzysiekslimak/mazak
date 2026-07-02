@@ -41,26 +41,24 @@ find "$APPDIR/opt/mazak/venv" -name "__pycache__" -type d -exec rm -rf {} + 2>/d
 
 cp "$PROJECT_ROOT/mazak_icon.png" "$APPDIR/mazak.png"
 
-echo "==> Dolaczanie bibliotek systemowych wymaganych przez Qt xcb (nie mozna"
-echo "    zalozyc, ze sa obecne na obcej maszynie - patrz Depends libqt6gui6t64"
-echo "    plus libxcb-cursor0, ktorego Qt >=6.5 dodatkowo wymaga)"
+echo "==> Dolaczanie libxcb-cursor0 (Qt >=6.5 tego wymaga, a wiele systemow"
+echo "    go jeszcze nie ma domyslnie zainstalowanego, w tym ta maszyna)"
 LIBDIR="$APPDIR/usr/lib/x86_64-linux-gnu"
 mkdir -p "$LIBDIR"
 EXTRA_LIBS_DIR="$SCRIPT_DIR/extra-libs"
 mkdir -p "$EXTRA_LIBS_DIR"
 pushd "$EXTRA_LIBS_DIR" > /dev/null
-XCB_PKGS="libxcb-cursor0 libxkbcommon-x11-0 libxkbcommon0 libx11-6 libx11-xcb1 \
-libxcb1 libxcb-glx0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 \
-libxcb-render-util0 libxcb-render0 libxcb-shape0 libxcb-shm0 libxcb-sync1 \
-libxcb-xfixes0 libxcb-xkb1"
-for pkg in $XCB_PKGS; do
-    if ! ls "${pkg}"_*.deb >/dev/null 2>&1; then
-        apt-get download "$pkg"
-    fi
-    rm -rf "extract-$pkg"
-    dpkg -x "$(ls "${pkg}"_*.deb | head -1)" "extract-$pkg"
-    find "extract-$pkg" -name "*.so*" -exec cp -P {} "$LIBDIR/" \;
-done
+# stara (focal-era, niskoglibcowa) wersja - wersja z apt tej maszyny (Ubuntu
+# 24.04) wymaga GLIBC_2.38, ktorej nie kazdy docelowy system ma; ta wymaga
+# tylko GLIBC 2.8 i zaleza wylacznie od bibliotek xcb-util ktore sa
+# standardowo obecne na kazdym systemie z dzialajacym X11
+XCB_CURSOR_DEB="libxcb-cursor0_0.1.1-3_amd64.deb"
+if [ ! -f "$XCB_CURSOR_DEB" ]; then
+    curl -fsSL -o "$XCB_CURSOR_DEB" "http://archive.ubuntu.com/ubuntu/pool/universe/x/xcb-util-cursor/$XCB_CURSOR_DEB"
+fi
+rm -rf extract-libxcb-cursor0
+dpkg -x "$XCB_CURSOR_DEB" extract-libxcb-cursor0
+find extract-libxcb-cursor0 -name "*.so*" -exec cp -P {} "$LIBDIR/" \;
 popd > /dev/null
 
 mkdir -p "$APPDIR/usr/share/applications"
@@ -117,8 +115,8 @@ for d in "$HERE"/opt/mazak/venv/lib/python3.*/site-packages; do
     break
 done
 unset PYTHONHOME
-# dolaczamy libxcb-cursor/libxkbcommon-x11, ktore Qt xcb wymaga, a ktorych
-# nie mozna zalozyc na obcej maszynie (wykryte przez CI, ktore ich nie mialo)
+# dolaczony libxcb-cursor.so.0 - wiele systemow go domyslnie nie ma, a Qt
+# >=6.5 tego wymaga do zaladowania pluginu xcb
 export LD_LIBRARY_PATH="$HERE/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 exec "$HERE/opt/mazak/venv/bin/python3" "$HERE/opt/mazak/main.py" "$@"
 EOF
