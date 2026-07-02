@@ -219,6 +219,45 @@ def text_icon(size=32) -> QIcon:
     return QIcon(pm)
 
 
+def _magnifier_icon(size=32, symbol: str | None = None) -> QIcon:
+    pm = _new_pixmap(size)
+    p = _painter(pm)
+    circle = QRectF(4, 4, 16, 16)
+    p.drawEllipse(circle)
+    p.drawLine(QPointF(16.5, 16.5), QPointF(24, 24))
+    if symbol:
+        pen = QPen(_STROKE, 2.2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+        p.setPen(pen)
+        cx, cy = circle.center().x(), circle.center().y()
+        p.drawLine(QPointF(cx - 4, cy), QPointF(cx + 4, cy))
+        if symbol == "+":
+            p.drawLine(QPointF(cx, cy - 4), QPointF(cx, cy + 4))
+    p.end()
+    return QIcon(pm)
+
+
+def zoom_in_icon(size=32) -> QIcon:
+    return _magnifier_icon(size, "+")
+
+
+def zoom_out_icon(size=32) -> QIcon:
+    return _magnifier_icon(size, "-")
+
+
+def zoom_fit_icon(size=32) -> QIcon:
+    pm = _new_pixmap(size)
+    p = _painter(pm)
+    p.drawRect(QRectF(6, 7, 20, 18))
+    arrow_pen = QPen(_STROKE, 2, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap, Qt.PenJoinStyle.RoundJoin)
+    p.setPen(arrow_pen)
+    p.drawLine(QPointF(11, 12), QPointF(11, 16))
+    p.drawLine(QPointF(11, 12), QPointF(15, 12))
+    p.drawLine(QPointF(21, 20), QPointF(21, 16))
+    p.drawLine(QPointF(21, 20), QPointF(17, 20))
+    p.end()
+    return QIcon(pm)
+
+
 def open_icon(size=32) -> QIcon:
     pm = _new_pixmap(size)
     p = _painter(pm)

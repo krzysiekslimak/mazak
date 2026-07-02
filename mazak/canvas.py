@@ -1,4 +1,4 @@
-from PySide6.QtCore import QPointF, QRectF, Qt
+from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QCursor, QPainter, QPixmap
 from PySide6.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsScene, QGraphicsView
 
@@ -18,19 +18,31 @@ class CanvasScene(QGraphicsScene):
         self.background_item.setZValue(-1000)
         self.background_item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, False)
         self.background_item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, False)
+        self.background_item.setTransformationMode(Qt.TransformationMode.SmoothTransformation)
         self.addItem(self.background_item)
         self.setSceneRect(QRectF(pixmap.rect()))
 
 
+MIN_ZOOM = 0.1
+MAX_ZOOM = 8.0
+
+
 class CanvasView(QGraphicsView):
+    zoom_changed = Signal(float)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.scene_ = CanvasScene(self)
         self.setScene(self.scene_)
         self.setRenderHint(QPainter.RenderHint.Antialiasing)
+        self.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
         self.setBackgroundBrush(QBrush(QColor("#cfd4da")))
         self.setFrameShape(QGraphicsView.Shape.NoFrame)
+        self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
+        self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
+
+        self._fit_mode = True
 
         self.current_tool = Tool.SELECT
         self.arrow_color = QColor("#e53935")
@@ -78,13 +90,60 @@ class CanvasView(QGraphicsView):
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
-        if self.scene_.background_item is not None:
+        if self.scene_.background_item is not None and self._fit_mode:
             self.fitInView(self.scene_.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+            self._notify_zoom()
 
     def load_image(self, path: str):
         pixmap = QPixmap(path)
         self.scene_.set_background_image(pixmap)
+        self._fit_mode = True
         self.fitInView(self.scene_.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+        self._notify_zoom()
+
+    def _notify_zoom(self):
+        self.zoom_changed.emit(self.transform().m11())
+
+    def current_zoom(self) -> float:
+        return self.transform().m11()
+
+    def zoom_fit(self):
+        if self.scene_.background_item is None:
+            return
+        self._fit_mode = True
+        self.fitInView(self.scene_.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+        self._notify_zoom()
+
+    def zoom_reset(self):
+        if self.scene_.background_item is None:
+            return
+        self._fit_mode = False
+        self.resetTransform()
+        self._notify_zoom()
+
+    def zoom_by(self, factor: float):
+        if self.scene_.background_item is None:
+            return
+        new_zoom = self.current_zoom() * factor
+        new_zoom = max(MIN_ZOOM, min(MAX_ZOOM, new_zoom))
+        factor = new_zoom / self.current_zoom()
+        self._fit_mode = False
+        self.scale(factor, factor)
+        self._notify_zoom()
+
+    def zoom_in(self):
+        self.zoom_by(1.25)
+
+    def zoom_out(self):
+        self.zoom_by(0.8)
+
+    def wheelEvent(self, event):
+        if event.modifiers() & Qt.KeyboardModifier.ControlModifier:
+            factor = 1.15 if event.angleDelta().y() > 0 else 1 / 1.15
+            self.zoom_by(factor)
+            event.accept()
+            return
+        super().wheelEvent(event)
 
     def mousePressEvent(self, event):
         if self.current_tool in (Tool.ARROW, Tool.BUBBLE, Tool.FRAME) and event.button() == Qt.MouseButton.LeftButton:
@@ -210,6 +269,7 @@ class CanvasView(QGraphicsView):
         image.fill(Qt.GlobalColor.transparent)
         painter = QPainter(image)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
         target = QRectF(0, 0, rect.width(), rect.height())
         self.scene_.render(painter, target, rect)
         painter.end()

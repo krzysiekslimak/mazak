@@ -2,7 +2,7 @@ import os
 
 from PySide6.QtCore import QSettings, QSize, Qt
 from PySide6.QtGui import QAction, QActionGroup, QKeySequence
-from PySide6.QtWidgets import QFileDialog, QMainWindow, QMessageBox, QToolBar, QVBoxLayout, QWidget
+from PySide6.QtWidgets import QFileDialog, QLabel, QMainWindow, QMessageBox, QToolBar, QVBoxLayout, QWidget
 
 from . import icons
 from .canvas import CanvasView
@@ -95,7 +95,16 @@ class MainWindow(QMainWindow):
         self._selected_item = None
         self.view.scene_.selectionChanged.connect(self._refresh_panels)
         self._build_toolbar()
+
+        self.zoom_label = QLabel("100%")
+        self.zoom_label.setStyleSheet("color: #5f6368; padding-right: 6px;")
+        self.statusBar().addPermanentWidget(self.zoom_label)
+        self.view.zoom_changed.connect(self._update_zoom_label)
+
         self.statusBar().showMessage("Otwórz obraz, żeby zacząć adnotować")
+
+    def _update_zoom_label(self, zoom: float):
+        self.zoom_label.setText(f"{round(zoom * 100)}%")
 
     def _build_toolbar(self):
         toolbar = QToolBar("Narzędzia")
@@ -150,6 +159,25 @@ class MainWindow(QMainWindow):
         undo_action.setToolTip("Cofnij (Ctrl+Z)")
         undo_action.triggered.connect(self.view.undo)
         toolbar.addAction(undo_action)
+
+        toolbar.addSeparator()
+
+        zoom_out_action = QAction(icons.zoom_out_icon(), "Pomniejsz", self)
+        zoom_out_action.setShortcut(QKeySequence.StandardKey.ZoomOut)
+        zoom_out_action.setToolTip("Pomniejsz (Ctrl+Scroll / Ctrl+-)")
+        zoom_out_action.triggered.connect(self.view.zoom_out)
+        toolbar.addAction(zoom_out_action)
+
+        zoom_in_action = QAction(icons.zoom_in_icon(), "Powiększ", self)
+        zoom_in_action.setShortcut(QKeySequence.StandardKey.ZoomIn)
+        zoom_in_action.setToolTip("Powiększ (Ctrl+Scroll / Ctrl++)")
+        zoom_in_action.triggered.connect(self.view.zoom_in)
+        toolbar.addAction(zoom_in_action)
+
+        zoom_fit_action = QAction(icons.zoom_fit_icon(), "Dopasuj", self)
+        zoom_fit_action.setToolTip("Dopasuj do okna")
+        zoom_fit_action.triggered.connect(self.view.zoom_fit)
+        toolbar.addAction(zoom_fit_action)
 
     def _activate_tool(self, tool: Tool):
         self.view.set_tool(tool)
