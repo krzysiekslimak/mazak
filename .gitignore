@@ -8,4 +8,5 @@ packaging/mazak_pkgroot/
 packaging/build-venv/
 packaging/tools/
 packaging/AppDir/
+packaging/extra-libs/
 *.AppImage

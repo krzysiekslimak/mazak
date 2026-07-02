@@ -41,6 +41,23 @@ find "$APPDIR/opt/mazak/venv" -name "__pycache__" -type d -exec rm -rf {} + 2>/d
 
 cp "$PROJECT_ROOT/mazak_icon.png" "$APPDIR/mazak.png"
 
+echo "==> Dolaczanie bibliotek systemowych, ktorych Qt xcb potrzebuje, a ktorych"
+echo "    nie mozna zalozyc na obcej maszynie (libxcb-cursor0, libxkbcommon-x11-0)"
+LIBDIR="$APPDIR/usr/lib/x86_64-linux-gnu"
+mkdir -p "$LIBDIR"
+EXTRA_LIBS_DIR="$SCRIPT_DIR/extra-libs"
+mkdir -p "$EXTRA_LIBS_DIR"
+pushd "$EXTRA_LIBS_DIR" > /dev/null
+for pkg in libxcb-cursor0 libxkbcommon-x11-0; do
+    if ! ls "${pkg}"_*.deb >/dev/null 2>&1; then
+        apt-get download "$pkg"
+    fi
+    rm -rf "extract-$pkg"
+    dpkg -x "$(ls "${pkg}"_*.deb | head -1)" "extract-$pkg"
+    find "extract-$pkg" -name "*.so*" -exec cp -P {} "$LIBDIR/" \;
+done
+popd > /dev/null
+
 mkdir -p "$APPDIR/usr/share/applications"
 cat > "$APPDIR/mazak.desktop" << 'EOF'
 [Desktop Entry]
@@ -95,6 +112,9 @@ for d in "$HERE"/opt/mazak/venv/lib/python3.*/site-packages; do
     break
 done
 unset PYTHONHOME
+# dolaczamy libxcb-cursor/libxkbcommon-x11, ktore Qt xcb wymaga, a ktorych
+# nie mozna zalozyc na obcej maszynie (wykryte przez CI, ktore ich nie mialo)
+export LD_LIBRARY_PATH="$HERE/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
 exec "$HERE/opt/mazak/venv/bin/python3" "$HERE/opt/mazak/main.py" "$@"
 EOF
 chmod +x "$APPDIR/AppRun"

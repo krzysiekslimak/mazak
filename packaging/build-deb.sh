@@ -73,7 +73,7 @@ Section: graphics
 Priority: optional
 Architecture: $ARCH
 Installed-Size: $INSTALLED_SIZE_KB
-Depends: python3 (>= 3.10), libxcb-cursor0
+Depends: python3 (>= 3.10), libxcb-cursor0, libxkbcommon-x11-0
 Maintainer: Krzysztof Ślimak <krzysztof.slimak@outlook.com>
 Homepage: https://github.com/krzysiekslimak/mazak
 Description: Narzędzie do adnotowania zrzutów ekranu
