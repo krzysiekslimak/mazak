@@ -1,60 +1,62 @@
+*English | [Polski](README.pl.md)*
+
 # Mazak
 
-Lekki edytor do adnotowania zrzutów ekranu (mockupy, dokumentacja, feedback) — strzałki, dymki, tekst, ramki i naklejki, każdy z panelem konfiguracji koloru, grubości, kształtu i cienia. Napisany w Pythonie / PySide6 (Qt6), natywna aplikacja na Linuksa.
+A lightweight screenshot annotation editor (mockups, documentation, feedback) — arrows, speech bubbles, text, frames, and stickers, each with a live panel for color, thickness, shape, and shadow. Built with Python / PySide6 (Qt6), a native Linux desktop app.
 
-![Zrzut ekranu Mazaka](docs/screenshot.png)
+![Mazak screenshot](docs/screenshot.png)
 
-Mazak **nie robi zrzutów ekranu** — do tego służy natywne narzędzie Twojego systemu (np. `Shift+Print Screen` na GNOME). Mazak otwiera już zrobiony plik PNG/JPG i pozwala go oznaczyć.
+Mazak **does not take screenshots** — use your system's native tool for that (e.g. `Shift+Print Screen` on GNOME). Mazak opens an already-captured PNG/JPG file and lets you mark it up.
 
-## Funkcje
+## Features
 
-- **Strzałka** — kolor, grubość, 3 style (klasyczna / cienka / gruba), cień
-- **Dymek** — kolor, 3 kształty (zaokrąglony / owalny / chmurka), obramowanie on/off, cień, tekst wewnątrz (czcionka, rozmiar, pogrubienie, kolor tekstu, cień tekstu)
-- **Tekst** — kolor, czcionka, rozmiar, pogrubienie, cień
-- **Ramka** — kolor, grubość, ostre/zaokrąglone rogi, cień
-- **Naklejki** — 6 gotowych symboli (wykrzyknik, znak zapytania, ptaszek, krzyżyk, gwiazdka, ostrzeżenie), kolor, rozmiar, cień
-- Kliknięcie już postawionego elementu narzędziem **Zaznacz** ponownie pokazuje jego panel — można edytować na żywo bez rysowania od nowa
-- Eksport spłaszczony do PNG, zapamiętywanie ostatnio używanego folderu (otwieranie i eksport osobno)
+- **Arrow** — color, thickness, 3 styles (classic / slim / bold), shadow
+- **Speech bubble** — color, 3 shapes (rounded / oval / cloud), border on/off, shadow, text inside (font, size, bold, text color, text shadow)
+- **Text** — color, font, size, bold, shadow
+- **Frame** — color, thickness, sharp/rounded corners, shadow
+- **Stickers** — 6 ready-made symbols (exclamation, question mark, check, cross, star, warning), color, size, shadow
+- Clicking an already-placed element with the **Select** tool re-opens its properties panel — edit it live without redrawing
+- Flattened PNG export, remembers the last-used folder (open and export tracked separately)
 
-## Instalacja
+## Installation
 
-### Pakiet .deb (Ubuntu/Debian, zalecane)
+### .deb package (Ubuntu/Debian, recommended)
 
-Pobierz najnowszy plik `.deb` z zakładki [Releases](../../releases) i zainstaluj:
+Download the latest `.deb` file from the [Releases](../../releases) page and install it:
 
 ```bash
 sudo apt install ./mazak_*.deb
 ```
 
-Pakiet zawiera własny, samodzielny zestaw PySide6 — nie wymaga niczego dodatkowego z internetu podczas instalacji. Po instalacji znajdziesz „Mazak” w menu aplikacji.
+The package bundles its own, self-contained PySide6 — no internet access is needed at install time. After installing, you'll find "Mazak" in your application menu.
 
-### Ze źródeł
+### From source
 
-Wymagany Python 3.10+.
+Requires Python 3.10+.
 
 ```bash
-git clone https://github.com/<twoj-uzytkownik>/mazak.git
+git clone https://github.com/krzysiekslimak/mazak.git
 cd mazak
 python3 -m venv venv
 ./venv/bin/pip install -r requirements.txt
 ./run.sh
 ```
 
-## Rozwój / uruchamianie testowe
+## Development / testing
 
-Projekt nie ma zewnętrznego frameworka testowego — logikę weryfikuje się poprzez uruchomienie aplikacji i ręczne (lub `QTest`-owe) przejście przez dany przepływ. Struktura kodu:
+The project has no external test framework — behavior is verified by running the app and walking through the relevant flow manually (or with `QTest`). Code layout:
 
 ```
 mazak/
-├── main_window.py   # okno główne, toolbar, panele właściwości
-├── canvas.py         # QGraphicsView/Scene, obsługa rysowania narzędziami
-├── items.py           # klasy elementów (ArrowItem, SpeechBubbleItem, TextAnnotationItem, FrameItem, StickerItem)
-├── panels.py          # kontekstowe panele ustawień dla każdego narzędzia
-├── icons.py            # generowane programowo ikony (bez plików graficznych)
-├── style.py             # arkusz stylów Qt (QSS)
-└── tools.py              # enumy narzędzi i wariantów (Tool, ArrowStyle, BubbleShape, StickerKind)
+├── main_window.py   # main window, toolbar, properties panels
+├── canvas.py         # QGraphicsView/Scene, tool drawing logic
+├── items.py           # element classes (ArrowItem, SpeechBubbleItem, TextAnnotationItem, FrameItem, StickerItem)
+├── panels.py          # contextual settings panel for each tool
+├── icons.py            # programmatically generated icons (no image assets)
+├── style.py             # Qt stylesheet (QSS)
+└── tools.py              # tool and variant enums (Tool, ArrowStyle, BubbleShape, StickerKind)
 ```
 
-## Licencja
+## License
 
 [MIT](LICENSE)
