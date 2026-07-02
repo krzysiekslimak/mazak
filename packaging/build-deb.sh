@@ -53,7 +53,14 @@ EOF
 
 cat > "$PKG_ROOT/usr/bin/mazak" << 'EOF'
 #!/usr/bin/env bash
-exec /opt/mazak/venv/bin/python /opt/mazak/main.py "$@"
+# nie polegamy na tym, ze venv/bin/python (symlink) sam wykryje swoj
+# venv na obcej maszynie - jawnie dokladamy site-packages do PYTHONPATH
+for d in /opt/mazak/venv/lib/python3.*/site-packages; do
+    export PYTHONPATH="$d${PYTHONPATH:+:$PYTHONPATH}"
+    break
+done
+unset PYTHONHOME
+exec /opt/mazak/venv/bin/python3 /opt/mazak/main.py "$@"
 EOF
 chmod +x "$PKG_ROOT/usr/bin/mazak"
 

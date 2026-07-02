@@ -88,7 +88,14 @@ EOF
 cat > "$APPDIR/AppRun" << 'EOF'
 #!/usr/bin/env bash
 HERE="$(dirname "$(readlink -f "${0}")")"
-exec "$HERE/opt/mazak/venv/bin/python" "$HERE/opt/mazak/main.py" "$@"
+# nie polegamy na tym, ze venv/bin/python (symlink) sam wykryje swoj
+# venv na obcej maszynie - jawnie dokladamy site-packages do PYTHONPATH
+for d in "$HERE"/opt/mazak/venv/lib/python3.*/site-packages; do
+    export PYTHONPATH="$d${PYTHONPATH:+:$PYTHONPATH}"
+    break
+done
+unset PYTHONHOME
+exec "$HERE/opt/mazak/venv/bin/python3" "$HERE/opt/mazak/main.py" "$@"
 EOF
 chmod +x "$APPDIR/AppRun"
 
