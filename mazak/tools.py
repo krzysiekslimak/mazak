@@ -8,6 +8,8 @@ class Tool(Enum):
     TEXT = auto()
     FRAME = auto()
     STICKER = auto()
+    BLUR = auto()
+    CROP = auto()
 
 
 class ArrowStyle(Enum):

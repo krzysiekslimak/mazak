@@ -1,4 +1,4 @@
-from PySide6.QtCore import QSize, Signal
+from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import (
     QButtonGroup,
@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QPushButton,
     QSpinBox,
     QToolButton,
     QVBoxLayout,
@@ -871,3 +872,71 @@ class StickerPropertiesPanel(_IslandPanel):
         self.shadow_btn.blockSignals(True)
         self.shadow_btn.setChecked(shadow)
         self.shadow_btn.blockSignals(False)
+
+
+class BlurPropertiesPanel(_IslandPanel):
+    pixel_size_changed = Signal(int)
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._build_ui()
+
+    def _build_ui(self):
+        outer = QHBoxLayout(self)
+        outer.setContentsMargins(18, 10, 18, 10)
+        outer.setSpacing(18)
+
+        col = QVBoxLayout()
+        col.setSpacing(6)
+        col.addWidget(self._section_label("Intensywność pikselizacji"))
+        self.size_spin = QSpinBox()
+        self.size_spin.setRange(4, 60)
+        self.size_spin.setValue(14)
+        self.size_spin.setSuffix(" px")
+        self.size_spin.setFixedWidth(80)
+        self.size_spin.valueChanged.connect(self.pixel_size_changed.emit)
+        col.addWidget(self.size_spin)
+        outer.addLayout(col)
+
+        hint = QLabel("Przeciągnij po obszarze, który chcesz zasłonić")
+        hint.setObjectName("sectionLabel")
+        outer.addWidget(hint)
+        outer.addStretch(1)
+
+    def sync_from(self, pixel_size: int):
+        self.size_spin.blockSignals(True)
+        self.size_spin.setValue(int(pixel_size))
+        self.size_spin.blockSignals(False)
+
+
+class CropPropertiesPanel(_IslandPanel):
+    apply_clicked = Signal()
+    cancel_clicked = Signal()
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self._build_ui()
+
+    def _build_ui(self):
+        outer = QHBoxLayout(self)
+        outer.setContentsMargins(18, 10, 18, 10)
+        outer.setSpacing(12)
+
+        hint = QLabel("Przeciągnij, aby zaznaczyć obszar przycięcia")
+        hint.setObjectName("sectionLabel")
+        outer.addWidget(hint)
+        outer.addStretch(1)
+
+        self.cancel_btn = QPushButton("Anuluj")
+        self.cancel_btn.setObjectName("panelSecondaryButton")
+        self.cancel_btn.clicked.connect(self.cancel_clicked.emit)
+        outer.addWidget(self.cancel_btn)
+
+        self.apply_btn = QPushButton("Zastosuj przycinanie")
+        self.apply_btn.setObjectName("panelPrimaryButton")
+        self.apply_btn.setEnabled(False)
+        self.apply_btn.clicked.connect(self.apply_clicked.emit)
+        outer.addWidget(self.apply_btn)
+
+    def set_apply_enabled(self, enabled: bool):
+        self.apply_btn.setEnabled(enabled)

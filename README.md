@@ -2,11 +2,11 @@
 
 # Mazak
 
-A lightweight screenshot annotation editor (mockups, documentation, feedback) — arrows, speech bubbles, text, frames, and stickers, each with a live panel for color, thickness, shape, and shadow. Built with Python / PySide6 (Qt6), a native Linux desktop app.
+A lightweight screenshot annotation editor (mockups, documentation, feedback) — arrows, speech bubbles, text, frames, stickers, blur/pixelate, and crop, each with a live panel for color, thickness, shape, and shadow. Built with Python / PySide6 (Qt6), a native Linux desktop app.
 
 ![Mazak screenshot](docs/screenshot.png)
 
-Mazak **does not take screenshots** — use your system's native tool for that (e.g. `Shift+Print Screen` on GNOME). Mazak opens an already-captured PNG/JPG file and lets you mark it up.
+Mazak **does not take screenshots** — use your system's native tool for that (e.g. `Shift+Print Screen` on GNOME). Mazak opens an already-captured image (from a file or straight from the clipboard) and lets you mark it up.
 
 ## Features
 
@@ -15,7 +15,12 @@ Mazak **does not take screenshots** — use your system's native tool for that (
 - **Text** — color, font, size, bold, shadow
 - **Frame** — color, thickness, sharp/rounded corners, shadow
 - **Stickers** — 6 ready-made symbols (exclamation, question mark, check, cross, star, warning), color, size, shadow
+- **Blur/pixelate** — drag over sensitive info (passwords, emails) to redact it, adjustable pixelation strength
+- **Crop** — drag to select an area, then apply or cancel; existing elements are repositioned or removed accordingly
 - Clicking an already-placed element with the **Select** tool re-opens its properties panel — edit it live without redrawing
+- **Paste from clipboard** (Ctrl+V) and **copy result to clipboard** (Ctrl+C) — both scoped to when the canvas has focus, so they never fight with text fields in the panels
+- Multi-step **undo/redo** (Ctrl+Z / Ctrl+Shift+Z) covering adding, deleting, and editing elements
+- Zoom in/out/fit (toolbar, Ctrl+scroll, or Ctrl+/Ctrl-), with smooth (non-pixelated) image scaling
 - Flattened PNG export, remembers the last-used folder (open and export tracked separately)
 
 ## Installation
@@ -49,12 +54,13 @@ The project has no external test framework — behavior is verified by running t
 ```
 mazak/
 ├── main_window.py   # main window, toolbar, properties panels
-├── canvas.py         # QGraphicsView/Scene, tool drawing logic
-├── items.py           # element classes (ArrowItem, SpeechBubbleItem, TextAnnotationItem, FrameItem, StickerItem)
+├── canvas.py         # QGraphicsView/Scene, tool drawing logic, clipboard, crop
+├── items.py           # element classes (ArrowItem, SpeechBubbleItem, TextAnnotationItem, FrameItem, StickerItem, BlurRegionItem)
 ├── panels.py          # contextual settings panel for each tool
-├── icons.py            # programmatically generated icons (no image assets)
-├── style.py             # Qt stylesheet (QSS)
-└── tools.py              # tool and variant enums (Tool, ArrowStyle, BubbleShape, StickerKind)
+├── undo.py             # Command-based undo/redo stack
+├── icons.py             # programmatically generated icons (no image assets)
+├── style.py              # Qt stylesheet (QSS)
+└── tools.py               # tool and variant enums (Tool, ArrowStyle, BubbleShape, StickerKind)
 ```
 
 ## License

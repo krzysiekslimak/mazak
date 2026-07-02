@@ -2,7 +2,7 @@ import math
 
 from PySide6.QtCore import Qt, QPointF, QRectF
 from PySide6.QtGui import QBrush, QColor, QFont, QPainter, QPainterPath, QPen, QPolygonF, QTextOption
-from PySide6.QtWidgets import QGraphicsDropShadowEffect, QGraphicsItem, QGraphicsPathItem, QGraphicsTextItem
+from PySide6.QtWidgets import QGraphicsDropShadowEffect, QGraphicsItem, QGraphicsPathItem, QGraphicsTextItem, QStyle
 
 from .tools import ArrowStyle, BubbleShape, StickerKind
 
@@ -620,3 +620,60 @@ class StickerItem(QGraphicsItem):
     @property
     def shadow_enabled(self) -> bool:
         return self.graphicsEffect() is not None
+
+
+class BlurRegionItem(QGraphicsItem):
+    def __init__(self, rect: QRectF, get_source_pixmap, pixel_size: int = 14, parent=None):
+        super().__init__(parent)
+        self._rect = rect
+        self._get_source_pixmap = get_source_pixmap
+        self._pixel_size = pixel_size
+        self.setFlags(QGraphicsItem.GraphicsItemFlag.ItemIsMovable | QGraphicsItem.GraphicsItemFlag.ItemIsSelectable)
+
+    def set_rect(self, rect: QRectF):
+        self.prepareGeometryChange()
+        self._rect = rect
+        self.update()
+
+    def set_pixel_size(self, size: int):
+        self._pixel_size = max(2, int(size))
+        self.update()
+
+    def boundingRect(self) -> QRectF:
+        return self._rect
+
+    def paint(self, painter: QPainter, option, widget=None):
+        source = self._get_source_pixmap()
+        if source is None or source.isNull():
+            return
+
+        scene_rect = self.mapRectToScene(self._rect)
+        image_rect = QRectF(source.rect())
+        crop_rect = scene_rect.intersected(image_rect)
+        if crop_rect.width() >= 1 and crop_rect.height() >= 1:
+            cropped = source.copy(crop_rect.toRect())
+            factor = max(1, self._pixel_size)
+            small_w = max(1, cropped.width() // factor)
+            small_h = max(1, cropped.height() // factor)
+            small = cropped.scaled(
+                small_w, small_h, Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.SmoothTransformation
+            )
+            pixelated = small.scaled(
+                cropped.width(), cropped.height(), Qt.AspectRatioMode.IgnoreAspectRatio, Qt.TransformationMode.FastTransformation
+            )
+            local_pos = self.mapFromScene(crop_rect.topLeft())
+            painter.drawPixmap(local_pos, pixelated)
+
+        if option.state & QStyle.StateFlag.State_Selected:
+            pen = QPen(QColor("#2f6fed"), 1.5, Qt.PenStyle.DashLine)
+            painter.setPen(pen)
+            painter.setBrush(Qt.BrushStyle.NoBrush)
+            painter.drawRect(self._rect)
+
+    @property
+    def rect(self) -> QRectF:
+        return self._rect
+
+    @property
+    def pixel_size(self) -> int:
+        return self._pixel_size

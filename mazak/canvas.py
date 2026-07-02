@@ -1,9 +1,10 @@
 from PySide6.QtCore import QPointF, QRectF, Qt, Signal
-from PySide6.QtGui import QBrush, QColor, QCursor, QPainter, QPixmap
-from PySide6.QtWidgets import QGraphicsItem, QGraphicsPixmapItem, QGraphicsScene, QGraphicsView
+from PySide6.QtGui import QBrush, QColor, QCursor, QImage, QKeySequence, QPainter, QPen, QPixmap
+from PySide6.QtWidgets import QApplication, QGraphicsItem, QGraphicsPixmapItem, QGraphicsRectItem, QGraphicsScene, QGraphicsView
 
-from .items import ArrowItem, FrameItem, SpeechBubbleItem, StickerItem, TextAnnotationItem
+from .items import ArrowItem, BlurRegionItem, FrameItem, SpeechBubbleItem, StickerItem, TextAnnotationItem
 from .tools import ArrowStyle, BubbleShape, StickerKind, Tool
+from .undo import Command, CompositeCommand, UndoManager
 
 
 class CanvasScene(QGraphicsScene):
@@ -29,6 +30,7 @@ MAX_ZOOM = 8.0
 
 class CanvasView(QGraphicsView):
     zoom_changed = Signal(float)
+    crop_pending_changed = Signal(bool)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -41,6 +43,7 @@ class CanvasView(QGraphicsView):
         self.setFrameShape(QGraphicsView.Shape.NoFrame)
         self.setTransformationAnchor(QGraphicsView.ViewportAnchor.AnchorUnderMouse)
         self.setResizeAnchor(QGraphicsView.ViewportAnchor.AnchorViewCenter)
+        self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         self._fit_mode = True
 
@@ -73,13 +76,19 @@ class CanvasView(QGraphicsView):
         self.sticker_color = QColor("#e53935")
         self.sticker_size = 48
         self.sticker_shadow = False
+        self.blur_pixel_size = 14
 
         self._drawing = False
         self._start_pos = QPointF()
         self._temp_item = None
-        self.undo_stack = []
+        self.undo_manager = UndoManager()
+
+        self._crop_overlay: QGraphicsRectItem | None = None
+        self._pending_crop_rect: QRectF | None = None
 
     def set_tool(self, tool: Tool):
+        if self.current_tool == Tool.CROP and tool != Tool.CROP:
+            self.cancel_crop()
         self.current_tool = tool
         if tool == Tool.SELECT:
             self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
@@ -96,7 +105,19 @@ class CanvasView(QGraphicsView):
 
     def load_image(self, path: str):
         pixmap = QPixmap(path)
+        self._load_pixmap(pixmap)
+
+    def load_image_from_clipboard(self) -> bool:
+        image = QApplication.clipboard().image()
+        if image.isNull():
+            return False
+        self._load_pixmap(QPixmap.fromImage(image))
+        return True
+
+    def _load_pixmap(self, pixmap: QPixmap):
         self.scene_.set_background_image(pixmap)
+        self.undo_manager.clear()
+        self.cancel_crop()
         self._fit_mode = True
         self.fitInView(self.scene_.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
         self._notify_zoom()
@@ -146,7 +167,7 @@ class CanvasView(QGraphicsView):
         super().wheelEvent(event)
 
     def mousePressEvent(self, event):
-        if self.current_tool in (Tool.ARROW, Tool.BUBBLE, Tool.FRAME) and event.button() == Qt.MouseButton.LeftButton:
+        if self.current_tool in (Tool.ARROW, Tool.BUBBLE, Tool.FRAME, Tool.BLUR, Tool.CROP) and event.button() == Qt.MouseButton.LeftButton:
             self._drawing = True
             self._start_pos = self.mapToScene(event.position().toPoint())
             self._temp_item = None
@@ -161,9 +182,22 @@ class CanvasView(QGraphicsView):
             return
         super().mousePressEvent(event)
 
+    def keyPressEvent(self, event):
+        if event.matches(QKeySequence.StandardKey.Paste):
+            self.load_image_from_clipboard()
+            event.accept()
+            return
+        if event.matches(QKeySequence.StandardKey.Copy):
+            self.copy_to_clipboard()
+            event.accept()
+            return
+        super().keyPressEvent(event)
+
     def mouseMoveEvent(self, event):
-        if self._drawing and self.current_tool in (Tool.ARROW, Tool.BUBBLE, Tool.FRAME):
+        if self._drawing and self.current_tool in (Tool.ARROW, Tool.BUBBLE, Tool.FRAME, Tool.BLUR, Tool.CROP):
             current = self.mapToScene(event.position().toPoint())
+            rect = QRectF(self._start_pos, current).normalized()
+
             if self.current_tool == Tool.ARROW:
                 if self._temp_item is None:
                     self._temp_item = ArrowItem(
@@ -178,7 +212,6 @@ class CanvasView(QGraphicsView):
                 else:
                     self._temp_item.set_end(current)
             elif self.current_tool == Tool.BUBBLE:
-                rect = QRectF(self._start_pos, current).normalized()
                 if self._temp_item is None:
                     self._temp_item = SpeechBubbleItem(
                         rect,
@@ -197,8 +230,7 @@ class CanvasView(QGraphicsView):
                     self.scene_.addItem(self._temp_item)
                 else:
                     self._temp_item.set_rect(rect)
-            else:
-                rect = QRectF(self._start_pos, current).normalized()
+            elif self.current_tool == Tool.FRAME:
                 if self._temp_item is None:
                     self._temp_item = FrameItem(
                         rect,
@@ -210,19 +242,94 @@ class CanvasView(QGraphicsView):
                     self.scene_.addItem(self._temp_item)
                 else:
                     self._temp_item.set_rect(rect)
+            elif self.current_tool == Tool.BLUR:
+                if self._temp_item is None:
+                    self._temp_item = BlurRegionItem(rect, self._get_background_pixmap, self.blur_pixel_size)
+                    self.scene_.addItem(self._temp_item)
+                else:
+                    self._temp_item.set_rect(rect)
+            else:
+                self._update_crop_overlay(rect)
             return
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
         if self._drawing and event.button() == Qt.MouseButton.LeftButton:
             self._drawing = False
+            if self.current_tool == Tool.CROP:
+                if self._crop_overlay is not None:
+                    self._pending_crop_rect = self._crop_overlay.rect()
+                    self.crop_pending_changed.emit(True)
+                self._temp_item = None
+                return
             if self._temp_item is not None:
-                self._temp_item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
-                self._temp_item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, True)
-                self.undo_stack.append(self._temp_item)
+                item = self._temp_item
+                item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
+                item.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsMovable, True)
+                self._push_add_command(item)
                 self._temp_item = None
             return
         super().mouseReleaseEvent(event)
+
+    def _get_background_pixmap(self) -> QPixmap | None:
+        if self.scene_.background_item is None:
+            return None
+        return self.scene_.background_item.pixmap()
+
+    def _update_crop_overlay(self, rect: QRectF):
+        if self._crop_overlay is None:
+            self._crop_overlay = QGraphicsRectItem()
+            self._crop_overlay.setPen(QPen(QColor("#2f6fed"), 1.5, Qt.PenStyle.DashLine))
+            self._crop_overlay.setBrush(QBrush(QColor(47, 111, 237, 40)))
+            self._crop_overlay.setZValue(2000)
+            self.scene_.addItem(self._crop_overlay)
+        self._crop_overlay.setRect(rect)
+
+    def cancel_crop(self):
+        if self._crop_overlay is not None:
+            self.scene_.removeItem(self._crop_overlay)
+            self._crop_overlay = None
+        self._pending_crop_rect = None
+        self.crop_pending_changed.emit(False)
+
+    def apply_crop(self):
+        if self._pending_crop_rect is None or self.scene_.background_item is None:
+            return
+        crop_rect = self._pending_crop_rect.intersected(self.scene_.sceneRect()).toRect()
+        if crop_rect.width() < 1 or crop_rect.height() < 1:
+            return
+
+        old_pixmap = self.scene_.background_item.pixmap()
+        new_pixmap = old_pixmap.copy(crop_rect)
+        offset = QPointF(-crop_rect.topLeft())
+        new_scene_rect = QRectF(0, 0, crop_rect.width(), crop_rect.height())
+
+        for item in list(self.scene_.items()):
+            if item is self.scene_.background_item or item is self._crop_overlay:
+                continue
+            shifted_rect = item.sceneBoundingRect().translated(offset)
+            if not new_scene_rect.intersects(shifted_rect):
+                self.scene_.removeItem(item)
+                continue
+            item.setPos(item.pos() + offset)
+
+        self.scene_.set_background_image(new_pixmap)
+        self.undo_manager.clear()
+        self.cancel_crop()
+        self._fit_mode = True
+        self.fitInView(self.scene_.sceneRect(), Qt.AspectRatioMode.KeepAspectRatio)
+        self._notify_zoom()
+
+    def _push_add_command(self, item):
+        scene = self.scene_
+
+        def do_add():
+            scene.addItem(item)
+
+        def do_remove():
+            scene.removeItem(item)
+
+        self.undo_manager.push(Command(undo_fn=do_remove, redo_fn=do_add))
 
     def _add_text(self, pos: QPointF):
         text_item = TextAnnotationItem(
@@ -237,7 +344,7 @@ class CanvasView(QGraphicsView):
         self.scene_.addItem(text_item)
         text_item.setSelected(True)
         text_item.start_editing(select_all=True)
-        self.undo_stack.append(text_item)
+        self._push_add_command(text_item)
 
     def _add_sticker(self, pos: QPointF):
         sticker = StickerItem(
@@ -248,24 +355,36 @@ class CanvasView(QGraphicsView):
         )
         sticker.setPos(pos)
         self.scene_.addItem(sticker)
-        self.undo_stack.append(sticker)
+        self._push_add_command(sticker)
 
     def undo(self):
-        if self.undo_stack:
-            item = self.undo_stack.pop()
-            self.scene_.removeItem(item)
+        self.undo_manager.undo()
+
+    def redo(self):
+        self.undo_manager.redo()
 
     def delete_selected(self):
-        for item in self.scene_.selectedItems():
-            self.scene_.removeItem(item)
-            if item in self.undo_stack:
-                self.undo_stack.remove(item)
+        selected = list(self.scene_.selectedItems())
+        if not selected:
+            return
+        scene = self.scene_
+        commands = []
+        for item in selected:
+            def do_remove(item=item):
+                scene.removeItem(item)
 
-    def export_image(self, path: str) -> bool:
+            def do_add(item=item):
+                scene.addItem(item)
+
+            commands.append(Command(undo_fn=do_add, redo_fn=do_remove))
+            scene.removeItem(item)
+        self.undo_manager.push(CompositeCommand(commands))
+
+    def _render_flat(self) -> QImage | None:
         if self.scene_.background_item is None:
-            return False
+            return None
         rect = self.scene_.sceneRect()
-        image = QPixmap(rect.size().toSize())
+        image = QImage(rect.size().toSize(), QImage.Format.Format_ARGB32)
         image.fill(Qt.GlobalColor.transparent)
         painter = QPainter(image)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -273,4 +392,17 @@ class CanvasView(QGraphicsView):
         target = QRectF(0, 0, rect.width(), rect.height())
         self.scene_.render(painter, target, rect)
         painter.end()
+        return image
+
+    def export_image(self, path: str) -> bool:
+        image = self._render_flat()
+        if image is None:
+            return False
         return image.save(path)
+
+    def copy_to_clipboard(self) -> bool:
+        image = self._render_flat()
+        if image is None:
+            return False
+        QApplication.clipboard().setImage(image)
+        return True

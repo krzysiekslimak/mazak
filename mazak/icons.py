@@ -317,6 +317,76 @@ def undo_icon(size=32) -> QIcon:
     return QIcon(pm)
 
 
+def redo_icon(size=32) -> QIcon:
+    pm = _new_pixmap(size)
+    p = _painter(pm)
+    p.translate(size, 0)
+    p.scale(-1, 1)
+    rect = QRectF(6, 6, 20, 20)
+    p.drawArc(rect, 20 * 16, 280 * 16)
+
+    cx, cy, r = 16.0, 16.0, 10.0
+    ang = math.radians(20)
+    ex = cx + r * math.cos(ang)
+    ey = cy + r * math.sin(ang)
+    tangent = ang - math.pi / 2
+    p1 = QPointF(ex + 7 * math.cos(tangent + 2.6), ey + 7 * math.sin(tangent + 2.6))
+    p2 = QPointF(ex + 7 * math.cos(tangent - 2.6), ey + 7 * math.sin(tangent - 2.6))
+    p.setBrush(QBrush(_STROKE))
+    p.drawPolygon(QPolygonF([QPointF(ex, ey), p1, p2]))
+    p.end()
+    return QIcon(pm)
+
+
+def blur_icon(size=32) -> QIcon:
+    pm = _new_pixmap(size)
+    p = QPainter(pm)
+    p.setRenderHint(QPainter.RenderHint.Antialiasing)
+    p.setPen(Qt.PenStyle.NoPen)
+    rect = QRectF(5, 5, 22, 22)
+    cols = 4
+    cell = rect.width() / cols
+    shades = ["#c3c7cb", "#9aa0a6", "#6b7178", "#3c4043"]
+    for row in range(cols):
+        for col in range(cols):
+            shade = shades[(row * 7 + col * 3) % len(shades)]
+            p.setBrush(QBrush(QColor(shade)))
+            p.drawRect(QRectF(rect.left() + col * cell, rect.top() + row * cell, cell, cell))
+    p.end()
+    return QIcon(pm)
+
+
+def crop_icon(size=32) -> QIcon:
+    pm = _new_pixmap(size)
+    p = _painter(pm)
+    p.drawLine(QPointF(10, 4), QPointF(10, 24))
+    p.drawLine(QPointF(10, 24), QPointF(28, 24))
+    p.drawLine(QPointF(22, 28), QPointF(22, 8))
+    p.drawLine(QPointF(22, 8), QPointF(4, 8))
+    p.end()
+    return QIcon(pm)
+
+
+def paste_icon(size=32) -> QIcon:
+    pm = _new_pixmap(size)
+    p = _painter(pm)
+    p.drawRoundedRect(QRectF(7, 7, 18, 20), 2, 2)
+    p.drawRoundedRect(QRectF(12, 4, 8, 5), 1.5, 1.5)
+    p.drawLine(QPointF(16, 14), QPointF(16, 22))
+    p.drawLine(QPointF(12, 18), QPointF(20, 18))
+    p.end()
+    return QIcon(pm)
+
+
+def copy_icon(size=32) -> QIcon:
+    pm = _new_pixmap(size)
+    p = _painter(pm)
+    p.drawRoundedRect(QRectF(11, 5, 15, 18), 2, 2)
+    p.drawRoundedRect(QRectF(6, 10, 15, 18), 2, 2)
+    p.end()
+    return QIcon(pm)
+
+
 def thickness_icon(px_width: float, size=32) -> QIcon:
     pm = _new_pixmap(size)
     p = QPainter(pm)

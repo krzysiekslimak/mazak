@@ -116,4 +116,33 @@ QFrame#propertiesPanel QToolButton:checked {
 QFrame#propertiesPanel QToolButton[swatch="true"] {
     border-radius: 17px;
 }
+
+QFrame#propertiesPanel QPushButton#panelPrimaryButton {
+    background-color: #2f6fed;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-weight: 600;
+}
+
+QFrame#propertiesPanel QPushButton#panelPrimaryButton:hover {
+    background-color: #2760d0;
+}
+
+QFrame#propertiesPanel QPushButton#panelPrimaryButton:disabled {
+    background-color: #b7c6ee;
+}
+
+QFrame#propertiesPanel QPushButton#panelSecondaryButton {
+    background-color: transparent;
+    color: #3c4043;
+    border: 1px solid #dde1e6;
+    border-radius: 8px;
+    padding: 7px 16px;
+}
+
+QFrame#propertiesPanel QPushButton#panelSecondaryButton:hover {
+    background-color: #f1f3f6;
+}
 """
