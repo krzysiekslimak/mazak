@@ -47,6 +47,8 @@ class CanvasView(QGraphicsView):
         self.setFocusPolicy(Qt.FocusPolicy.StrongFocus)
 
         self._fit_mode = True
+        self._panning = False
+        self._pan_start = QPointF()
 
         self.current_tool = Tool.SELECT
         self.arrow_color = QColor("#e53935")
@@ -105,10 +107,14 @@ class CanvasView(QGraphicsView):
         self.current_tool = tool
         if tool == Tool.SELECT:
             self.setDragMode(QGraphicsView.DragMode.RubberBandDrag)
-            self.setCursor(QCursor(Qt.CursorShape.ArrowCursor))
         else:
             self.setDragMode(QGraphicsView.DragMode.NoDrag)
-            self.setCursor(QCursor(Qt.CursorShape.CrossCursor))
+        self.setCursor(self._tool_cursor())
+
+    def _tool_cursor(self) -> QCursor:
+        if self.current_tool == Tool.SELECT:
+            return QCursor(Qt.CursorShape.ArrowCursor)
+        return QCursor(Qt.CursorShape.CrossCursor)
 
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -180,6 +186,12 @@ class CanvasView(QGraphicsView):
         super().wheelEvent(event)
 
     def mousePressEvent(self, event):
+        if event.button() == Qt.MouseButton.MiddleButton:
+            self._panning = True
+            self._pan_start = event.position().toPoint()
+            self.setCursor(QCursor(Qt.CursorShape.ClosedHandCursor))
+            event.accept()
+            return
         if self.current_tool in (Tool.ARROW, Tool.BUBBLE, Tool.FRAME, Tool.BLUR, Tool.CROP) and event.button() == Qt.MouseButton.LeftButton:
             self._drawing = True
             self._start_pos = self.mapToScene(event.position().toPoint())
@@ -207,6 +219,16 @@ class CanvasView(QGraphicsView):
         super().keyPressEvent(event)
 
     def mouseMoveEvent(self, event):
+        if self._panning:
+            pos = event.position().toPoint()
+            delta = pos - self._pan_start
+            self._pan_start = pos
+            h_bar = self.horizontalScrollBar()
+            v_bar = self.verticalScrollBar()
+            h_bar.setValue(h_bar.value() - delta.x())
+            v_bar.setValue(v_bar.value() - delta.y())
+            event.accept()
+            return
         if self._drawing and self.current_tool in (Tool.ARROW, Tool.BUBBLE, Tool.FRAME, Tool.BLUR, Tool.CROP):
             current = self.mapToScene(event.position().toPoint())
             rect = QRectF(self._start_pos, current).normalized()
@@ -267,6 +289,11 @@ class CanvasView(QGraphicsView):
         super().mouseMoveEvent(event)
 
     def mouseReleaseEvent(self, event):
+        if event.button() == Qt.MouseButton.MiddleButton and self._panning:
+            self._panning = False
+            self.setCursor(self._tool_cursor())
+            event.accept()
+            return
         if self._drawing and event.button() == Qt.MouseButton.LeftButton:
             self._drawing = False
             if self.current_tool == Tool.CROP:
