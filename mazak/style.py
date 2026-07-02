@@ -41,6 +41,16 @@ QToolBar::separator {
     margin: 6px 6px;
 }
 
+QToolBar QToolButton#qt_toolbar_ext_button {
+    padding: 2px;
+    border-radius: 6px;
+    min-width: 16px;
+}
+
+QToolBar QToolButton#qt_toolbar_ext_button:hover {
+    background-color: #f1f3f6;
+}
+
 QGraphicsView {
     background-color: #cfd4da;
     border: none;

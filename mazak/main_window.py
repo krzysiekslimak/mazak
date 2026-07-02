@@ -26,7 +26,7 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.settings = QSettings("Mazak", "Mazak")
-        translator.set_language(self.settings.value("language", "pl", str))
+        translator.set_language(self.settings.value("language", "en", str))
         translator.language_changed.connect(lambda lang: self.settings.setValue("language", lang))
         self._retranslations = []
 

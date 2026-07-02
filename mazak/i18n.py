@@ -197,7 +197,7 @@ class Translator(QObject):
 
     def __init__(self):
         super().__init__()
-        self._lang = "pl"
+        self._lang = "en"
 
     def language(self) -> str:
         return self._lang

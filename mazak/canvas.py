@@ -83,9 +83,21 @@ class CanvasView(QGraphicsView):
         self._start_pos = QPointF()
         self._temp_item = None
         self.undo_manager = UndoManager()
+        self._z_counter = 0
 
         self._crop_overlay: QGraphicsRectItem | None = None
         self._pending_crop_rect: QRectF | None = None
+
+        self.scene_.selectionChanged.connect(self._bring_selection_to_front)
+
+    def _next_z(self) -> float:
+        self._z_counter += 1
+        return self._z_counter
+
+    def _bring_selection_to_front(self):
+        selected = self.scene_.selectedItems()
+        if len(selected) == 1 and selected[0] is not self.scene_.background_item:
+            selected[0].setZValue(self._next_z())
 
     def set_tool(self, tool: Tool):
         if self.current_tool == Tool.CROP and tool != Tool.CROP:
@@ -322,6 +334,7 @@ class CanvasView(QGraphicsView):
         self._notify_zoom()
 
     def _push_add_command(self, item):
+        item.setZValue(self._next_z())
         scene = self.scene_
 
         def do_add():
