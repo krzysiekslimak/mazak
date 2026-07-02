@@ -497,6 +497,17 @@ def circle_swatch_icon(color: QColor, size=32) -> QIcon:
     return QIcon(pm)
 
 
+def language_icon(size=32) -> QIcon:
+    pm = _new_pixmap(size)
+    p = _painter(pm)
+    rect = QRectF(4, 4, size - 8, size - 8)
+    p.drawEllipse(rect)
+    p.drawLine(QPointF(rect.left(), rect.center().y()), QPointF(rect.right(), rect.center().y()))
+    p.drawEllipse(QRectF(rect.center().x() - rect.width() * 0.22, rect.top(), rect.width() * 0.44, rect.height()))
+    p.end()
+    return QIcon(pm)
+
+
 def app_icon(size=64) -> QIcon:
     pm = _new_pixmap(size)
     p = QPainter(pm)

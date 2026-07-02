@@ -20,6 +20,7 @@ Mazak **nie robi zrzutów ekranu** — do tego służy natywne narzędzie Twojeg
 - Kliknięcie już postawionego elementu narzędziem **Zaznacz** ponownie pokazuje jego panel — można edytować na żywo bez rysowania od nowa
 - **Wklejanie ze schowka** (Ctrl+V) i **kopiowanie wyniku do schowka** (Ctrl+C) — oba działają tylko gdy płótno ma fokus, więc nie kolidują z polami tekstowymi w panelach
 - Wielopoziomowy **undo/redo** (Ctrl+Z / Ctrl+Shift+Z) obejmujący dodawanie, usuwanie i edycję elementów
+- **Interfejs po polsku/angielsku**, przełączany na żywo z toolbara (ikona globusa), zapamiętywany między sesjami
 - Powiększanie/pomniejszanie/dopasowanie (toolbar, Ctrl+scroll albo Ctrl+/Ctrl-), z gładkim (niepikselowanym) skalowaniem obrazu
 - Eksport spłaszczony do PNG, zapamiętywanie ostatnio używanego folderu (otwieranie i eksport osobno)
 
@@ -58,6 +59,7 @@ mazak/
 ├── items.py           # klasy elementów (ArrowItem, SpeechBubbleItem, TextAnnotationItem, FrameItem, StickerItem, BlurRegionItem)
 ├── panels.py          # kontekstowe panele ustawień dla każdego narzędzia
 ├── undo.py             # stos undo/redo oparty o komendy
+├── i18n.py              # słownik tłumaczeń PL/EN i przełącznik na żywo
 ├── icons.py              # generowane programowo ikony (bez plików graficznych)
 ├── style.py               # arkusz stylów Qt (QSS)
 └── tools.py                # enumy narzędzi i wariantów (Tool, ArrowStyle, BubbleShape, StickerKind)

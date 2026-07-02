@@ -6,6 +6,7 @@ from PySide6.QtWidgets import QFileDialog, QLabel, QMainWindow, QMessageBox, QTo
 
 from . import icons
 from .canvas import CanvasView
+from .i18n import tr, translator
 from .items import ArrowItem, BlurRegionItem, FrameItem, SpeechBubbleItem, StickerItem, TextAnnotationItem
 from .panels import (
     ArrowPropertiesPanel,
@@ -24,12 +25,15 @@ from .undo import Command
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Mazak")
+        self.settings = QSettings("Mazak", "Mazak")
+        translator.set_language(self.settings.value("language", "pl", str))
+        translator.language_changed.connect(lambda lang: self.settings.setValue("language", lang))
+        self._retranslations = []
+
+        self.setWindowTitle(tr("app_name"))
         self.setWindowIcon(icons.app_icon())
         self.resize(1100, 750)
         self.setStyleSheet(APP_STYLESHEET)
-
-        self.settings = QSettings("Mazak", "Mazak")
 
         self.view = CanvasView(self)
 
@@ -121,102 +125,99 @@ class MainWindow(QMainWindow):
         self.statusBar().addPermanentWidget(self.zoom_label)
         self.view.zoom_changed.connect(self._update_zoom_label)
 
-        self.statusBar().showMessage("Otwórz obraz, żeby zacząć adnotować")
+        self.statusBar().showMessage(tr("status_ready"))
+        translator.language_changed.connect(self._retranslate)
         self.view.setFocus()
+
+    def _retranslate(self, _lang=None):
+        for fn in self._retranslations:
+            fn()
+
+    def _toggle_language(self):
+        translator.set_language("en" if translator.language() == "pl" else "pl")
 
     def _update_zoom_label(self, zoom: float):
         self.zoom_label.setText(f"{round(zoom * 100)}%")
 
+    def _add_action(self, toolbar, icon, text_key, tooltip_key=None, shortcut=None, on_triggered=None, action_group=None, checked=False):
+        action = QAction(icon, tr(text_key), self)
+        if shortcut is not None:
+            action.setShortcut(shortcut)
+        if tooltip_key is not None:
+            action.setToolTip(tr(tooltip_key))
+        if action_group is not None:
+            action.setCheckable(True)
+            action.setChecked(checked)
+            action_group.addAction(action)
+        if on_triggered is not None:
+            action.triggered.connect(on_triggered)
+        toolbar.addAction(action)
+
+        def refresh(a=action, tk=text_key, tt=tooltip_key):
+            a.setText(tr(tk))
+            if tt is not None:
+                a.setToolTip(tr(tt))
+
+        self._retranslations.append(refresh)
+        return action
+
     def _build_toolbar(self):
-        toolbar = QToolBar("Narzędzia")
+        toolbar = QToolBar(tr("toolbar_name"))
         toolbar.setMovable(False)
         toolbar.setIconSize(QSize(26, 26))
         toolbar.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextUnderIcon)
         self.addToolBar(toolbar)
+        self._retranslations.append(lambda: toolbar.setWindowTitle(tr("toolbar_name")))
 
-        open_action = QAction(icons.open_icon(), "Otwórz", self)
-        open_action.setShortcut(QKeySequence.StandardKey.Open)
-        open_action.setToolTip("Otwórz obraz (Ctrl+O)")
-        open_action.triggered.connect(self.open_image)
-        toolbar.addAction(open_action)
-
-        paste_action = QAction(icons.paste_icon(), "Wklej", self)
-        paste_action.setToolTip("Wklej obraz ze schowka (Ctrl+V, gdy płótno ma fokus)")
-        paste_action.triggered.connect(self.paste_image)
-        toolbar.addAction(paste_action)
-
-        export_action = QAction(icons.export_icon(), "Eksportuj", self)
-        export_action.setShortcut(QKeySequence.StandardKey.Save)
-        export_action.setToolTip("Eksportuj jako PNG (Ctrl+S)")
-        export_action.triggered.connect(self.export_image)
-        toolbar.addAction(export_action)
-
-        copy_action = QAction(icons.copy_icon(), "Kopiuj", self)
-        copy_action.setToolTip("Kopiuj wynik do schowka (Ctrl+C, gdy płótno ma fokus)")
-        copy_action.triggered.connect(self.copy_image)
-        toolbar.addAction(copy_action)
+        self._add_action(toolbar, icons.open_icon(), "open", "open_tooltip", QKeySequence.StandardKey.Open, self.open_image)
+        self._add_action(toolbar, icons.paste_icon(), "paste", "paste_tooltip", on_triggered=self.paste_image)
+        self._add_action(toolbar, icons.export_icon(), "export", "export_tooltip", QKeySequence.StandardKey.Save, self.export_image)
+        self._add_action(toolbar, icons.copy_icon(), "copy", "copy_tooltip", on_triggered=self.copy_image)
 
         toolbar.addSeparator()
 
         tool_group = QActionGroup(self)
         tool_group.setExclusive(True)
 
-        def add_tool_action(label, icon, tool, checked=False):
-            action = QAction(icon, label, self)
-            action.setCheckable(True)
-            action.setChecked(checked)
-            action.triggered.connect(lambda: self._activate_tool(tool))
-            tool_group.addAction(action)
-            toolbar.addAction(action)
-            return action
+        def add_tool_action(text_key, icon, tool, checked=False):
+            return self._add_action(
+                toolbar, icon, text_key, on_triggered=lambda: self._activate_tool(tool), action_group=tool_group, checked=checked
+            )
 
-        add_tool_action("Zaznacz", icons.select_icon(), Tool.SELECT, checked=True)
-        add_tool_action("Strzałka", icons.arrow_icon(), Tool.ARROW)
-        add_tool_action("Dymek", icons.bubble_icon(), Tool.BUBBLE)
-        add_tool_action("Tekst", icons.text_icon(), Tool.TEXT)
-        add_tool_action("Ramka", icons.frame_icon(), Tool.FRAME)
-        add_tool_action("Naklejki", icons.sticker_icon(StickerKind.EXCLAMATION), Tool.STICKER)
-        add_tool_action("Rozmyj", icons.blur_icon(), Tool.BLUR)
-        add_tool_action("Przytnij", icons.crop_icon(), Tool.CROP)
+        add_tool_action("select", icons.select_icon(), Tool.SELECT, checked=True)
+        add_tool_action("arrow", icons.arrow_icon(), Tool.ARROW)
+        add_tool_action("bubble", icons.bubble_icon(), Tool.BUBBLE)
+        add_tool_action("text", icons.text_icon(), Tool.TEXT)
+        add_tool_action("frame", icons.frame_icon(), Tool.FRAME)
+        add_tool_action("stickers", icons.sticker_icon(StickerKind.EXCLAMATION), Tool.STICKER)
+        add_tool_action("blur", icons.blur_icon(), Tool.BLUR)
+        add_tool_action("crop", icons.crop_icon(), Tool.CROP)
 
         toolbar.addSeparator()
 
-        delete_action = QAction(icons.delete_icon(), "Usuń", self)
-        delete_action.setShortcut(QKeySequence.StandardKey.Delete)
-        delete_action.setToolTip("Usuń zaznaczone (Delete)")
-        delete_action.triggered.connect(self.view.delete_selected)
-        toolbar.addAction(delete_action)
-
-        undo_action = QAction(icons.undo_icon(), "Cofnij", self)
-        undo_action.setShortcut(QKeySequence.StandardKey.Undo)
-        undo_action.setToolTip("Cofnij (Ctrl+Z)")
-        undo_action.triggered.connect(self.view.undo)
-        toolbar.addAction(undo_action)
-
-        redo_action = QAction(icons.redo_icon(), "Ponów", self)
-        redo_action.setShortcut(QKeySequence.StandardKey.Redo)
-        redo_action.setToolTip("Ponów (Ctrl+Shift+Z)")
-        redo_action.triggered.connect(self.view.redo)
-        toolbar.addAction(redo_action)
+        self._add_action(toolbar, icons.delete_icon(), "delete", "delete_tooltip", QKeySequence.StandardKey.Delete, self.view.delete_selected)
+        self._add_action(toolbar, icons.undo_icon(), "undo", "undo_tooltip", QKeySequence.StandardKey.Undo, self.view.undo)
+        self._add_action(toolbar, icons.redo_icon(), "redo", "redo_tooltip", QKeySequence.StandardKey.Redo, self.view.redo)
 
         toolbar.addSeparator()
 
-        zoom_out_action = QAction(icons.zoom_out_icon(), "Pomniejsz", self)
-        zoom_out_action.setShortcut(QKeySequence.StandardKey.ZoomOut)
-        zoom_out_action.setToolTip("Pomniejsz (Ctrl+Scroll / Ctrl+-)")
-        zoom_out_action.triggered.connect(self.view.zoom_out)
-        toolbar.addAction(zoom_out_action)
+        self._add_action(toolbar, icons.zoom_out_icon(), "zoom_out", "zoom_out_tooltip", QKeySequence.StandardKey.ZoomOut, self.view.zoom_out)
+        self._add_action(toolbar, icons.zoom_in_icon(), "zoom_in", "zoom_in_tooltip", QKeySequence.StandardKey.ZoomIn, self.view.zoom_in)
+        self._add_action(toolbar, icons.zoom_fit_icon(), "zoom_fit", "zoom_fit_tooltip", on_triggered=self.view.zoom_fit)
 
-        zoom_in_action = QAction(icons.zoom_in_icon(), "Powiększ", self)
-        zoom_in_action.setShortcut(QKeySequence.StandardKey.ZoomIn)
-        zoom_in_action.setToolTip("Powiększ (Ctrl+Scroll / Ctrl++)")
-        zoom_in_action.triggered.connect(self.view.zoom_in)
-        toolbar.addAction(zoom_in_action)
+        toolbar.addSeparator()
 
-        zoom_fit_action = QAction(icons.zoom_fit_icon(), "Dopasuj", self)
-        zoom_fit_action.setToolTip("Dopasuj do okna")
-        zoom_fit_action.triggered.connect(self.view.zoom_fit)
-        toolbar.addAction(zoom_fit_action)
+        self.lang_action = QAction(icons.language_icon(), "", self)
+        self.lang_action.setToolTip(tr("switch_language_tooltip"))
+        self.lang_action.triggered.connect(self._toggle_language)
+        toolbar.addAction(self.lang_action)
+
+        def refresh_lang_action():
+            self.lang_action.setText("EN" if translator.language() == "pl" else "PL")
+            self.lang_action.setToolTip(tr("switch_language_tooltip"))
+
+        refresh_lang_action()
+        self._retranslations.append(refresh_lang_action)
 
     def _activate_tool(self, tool: Tool):
         self.view.set_tool(tool)
@@ -539,38 +540,38 @@ class MainWindow(QMainWindow):
 
     def open_image(self):
         start_dir = self.settings.value("last_open_dir", "", str)
-        path, _ = QFileDialog.getOpenFileName(self, "Otwórz obraz", start_dir, "Obrazy (*.png *.jpg *.jpeg)")
+        path, _ = QFileDialog.getOpenFileName(self, tr("dialog_open_title"), start_dir, tr("filter_images"))
         if path:
             self.view.load_image(path)
             self.current_path = path
             self.settings.setValue("last_open_dir", os.path.dirname(path))
-            self.statusBar().showMessage(f"Wczytano: {path}")
+            self.statusBar().showMessage(tr("status_loaded").format(path=path))
 
     def paste_image(self):
         if self.view.load_image_from_clipboard():
             self.current_path = None
-            self.statusBar().showMessage("Wklejono obraz ze schowka")
+            self.statusBar().showMessage(tr("status_pasted"))
         else:
-            QMessageBox.information(self, "Mazak", "Schowek nie zawiera obrazu.")
+            QMessageBox.information(self, tr("app_name"), tr("warn_no_image_clipboard"))
 
     def copy_image(self):
         if self.view.scene_.background_item is None:
-            QMessageBox.warning(self, "Mazak", "Najpierw otwórz obraz.")
+            QMessageBox.warning(self, tr("app_name"), tr("warn_open_first"))
             return
         if self.view.copy_to_clipboard():
-            self.statusBar().showMessage("Skopiowano wynik do schowka")
+            self.statusBar().showMessage(tr("status_copied"))
 
     def export_image(self):
         if self.view.scene_.background_item is None:
-            QMessageBox.warning(self, "Mazak", "Najpierw otwórz obraz.")
+            QMessageBox.warning(self, tr("app_name"), tr("warn_open_first"))
             return
         start_dir = self.settings.value("last_export_dir", "", str)
-        path, _ = QFileDialog.getSaveFileName(self, "Eksportuj jako PNG", start_dir, "PNG (*.png)")
+        path, _ = QFileDialog.getSaveFileName(self, tr("dialog_export_title"), start_dir, tr("filter_png"))
         if path:
             if not path.lower().endswith(".png"):
                 path += ".png"
             if self.view.export_image(path):
                 self.settings.setValue("last_export_dir", os.path.dirname(path))
-                self.statusBar().showMessage(f"Zapisano: {path}")
+                self.statusBar().showMessage(tr("status_saved").format(path=path))
             else:
-                QMessageBox.critical(self, "Mazak", "Nie udało się zapisać pliku.")
+                QMessageBox.critical(self, tr("app_name"), tr("warn_save_failed"))

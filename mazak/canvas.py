@@ -2,6 +2,7 @@ from PySide6.QtCore import QPointF, QRectF, Qt, Signal
 from PySide6.QtGui import QBrush, QColor, QCursor, QImage, QKeySequence, QPainter, QPen, QPixmap
 from PySide6.QtWidgets import QApplication, QGraphicsItem, QGraphicsPixmapItem, QGraphicsRectItem, QGraphicsScene, QGraphicsView
 
+from .i18n import tr
 from .items import ArrowItem, BlurRegionItem, FrameItem, SpeechBubbleItem, StickerItem, TextAnnotationItem
 from .tools import ArrowStyle, BubbleShape, StickerKind, Tool
 from .undo import Command, CompositeCommand, UndoManager
@@ -57,7 +58,7 @@ class CanvasView(QGraphicsView):
         self.bubble_shape = BubbleShape.ROUNDED
         self.bubble_border = False
         self.bubble_shadow = False
-        self.bubble_text = "Tekst"
+        self.bubble_text = tr("default_bubble_text")
         self.bubble_font_family = ""
         self.bubble_font_size = 16
         self.bubble_bold = True
@@ -220,7 +221,7 @@ class CanvasView(QGraphicsView):
                         shape=self.bubble_shape,
                         border=self.bubble_border,
                         shadow=self.bubble_shadow,
-                        text=self.bubble_text or "Tekst",
+                        text=self.bubble_text or tr("default_bubble_text"),
                         font_family=self.bubble_font_family,
                         font_size=self.bubble_font_size,
                         bold=self.bubble_bold,
@@ -333,7 +334,7 @@ class CanvasView(QGraphicsView):
 
     def _add_text(self, pos: QPointF):
         text_item = TextAnnotationItem(
-            "Opis",
+            tr("default_annotation_text"),
             color=self.text_color,
             font_family=self.text_font_family,
             font_size=self.text_font_size,

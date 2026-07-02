@@ -20,6 +20,7 @@ Mazak **does not take screenshots** — use your system's native tool for that (
 - Clicking an already-placed element with the **Select** tool re-opens its properties panel — edit it live without redrawing
 - **Paste from clipboard** (Ctrl+V) and **copy result to clipboard** (Ctrl+C) — both scoped to when the canvas has focus, so they never fight with text fields in the panels
 - Multi-step **undo/redo** (Ctrl+Z / Ctrl+Shift+Z) covering adding, deleting, and editing elements
+- **Polish/English interface**, switchable live from the toolbar (globe icon), remembered between sessions
 - Zoom in/out/fit (toolbar, Ctrl+scroll, or Ctrl+/Ctrl-), with smooth (non-pixelated) image scaling
 - Flattened PNG export, remembers the last-used folder (open and export tracked separately)
 
@@ -58,6 +59,7 @@ mazak/
 ├── items.py           # element classes (ArrowItem, SpeechBubbleItem, TextAnnotationItem, FrameItem, StickerItem, BlurRegionItem)
 ├── panels.py          # contextual settings panel for each tool
 ├── undo.py             # Command-based undo/redo stack
+├── i18n.py              # PL/EN translation dictionary and live switcher
 ├── icons.py             # programmatically generated icons (no image assets)
 ├── style.py              # Qt stylesheet (QSS)
 └── tools.py               # tool and variant enums (Tool, ArrowStyle, BubbleShape, StickerKind)

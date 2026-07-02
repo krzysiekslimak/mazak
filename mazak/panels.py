@@ -1,4 +1,4 @@
-from PySide6.QtCore import QSize, Qt, Signal
+from PySide6.QtCore import QSize, Signal
 from PySide6.QtGui import QColor, QFont
 from PySide6.QtWidgets import (
     QButtonGroup,
@@ -16,6 +16,7 @@ from PySide6.QtWidgets import (
 )
 
 from . import icons
+from .i18n import tr, translator
 from .tools import ArrowStyle, BubbleShape, StickerKind
 
 ARROW_PALETTE = [
@@ -36,18 +37,18 @@ BUBBLE_PALETTE = [
     QColor("#1e88e5"),
 ]
 
-THICKNESS_OPTIONS = [("Cienka", 2.5), ("Średnia", 4.0), ("Gruba", 7.0)]
+THICKNESS_OPTIONS = [("thickness_thin", 2.5), ("thickness_medium", 4.0), ("thickness_thick", 7.0)]
 
 ARROW_STYLE_OPTIONS = [
-    ("Klasyczna", ArrowStyle.CLASSIC),
-    ("Cienka", ArrowStyle.SLIM),
-    ("Gruba", ArrowStyle.BOLD),
+    ("arrow_style_classic", ArrowStyle.CLASSIC),
+    ("arrow_style_slim", ArrowStyle.SLIM),
+    ("arrow_style_bold", ArrowStyle.BOLD),
 ]
 
 BUBBLE_SHAPE_OPTIONS = [
-    ("Zaokrąglony", BubbleShape.ROUNDED),
-    ("Owalny", BubbleShape.OVAL),
-    ("Chmurka", BubbleShape.CLOUD),
+    ("bubble_shape_rounded", BubbleShape.ROUNDED),
+    ("bubble_shape_oval", BubbleShape.OVAL),
+    ("bubble_shape_cloud", BubbleShape.CLOUD),
 ]
 
 TEXT_PALETTE = [
@@ -68,7 +69,7 @@ FRAME_PALETTE = [
     QColor("#8e24aa"),
 ]
 
-CORNER_OPTIONS = [("Ostre", False), ("Zaokrąglone", True)]
+CORNER_OPTIONS = [("corner_sharp", False), ("corner_rounded", True)]
 
 STICKER_PALETTE = [
     QColor("#e53935"),
@@ -80,13 +81,15 @@ STICKER_PALETTE = [
 ]
 
 STICKER_OPTIONS = [
-    ("Wykrzyknik", StickerKind.EXCLAMATION),
-    ("Znak zapytania", StickerKind.QUESTION),
-    ("Ptaszek", StickerKind.CHECK),
-    ("Krzyżyk", StickerKind.CROSS),
-    ("Gwiazdka", StickerKind.STAR),
-    ("Ostrzeżenie", StickerKind.WARNING),
+    ("sticker_exclamation", StickerKind.EXCLAMATION),
+    ("sticker_question", StickerKind.QUESTION),
+    ("sticker_check", StickerKind.CHECK),
+    ("sticker_cross", StickerKind.CROSS),
+    ("sticker_star", StickerKind.STAR),
+    ("sticker_warning", StickerKind.WARNING),
 ]
+
+TEXT_COLOR_OPTIONS = [(QColor("#1e1e1e"), "black_text"), (QColor("#ffffff"), "white_text")]
 
 
 class _IslandPanel(QFrame):
@@ -98,11 +101,26 @@ class _IslandPanel(QFrame):
         effect.setOffset(0, 4)
         effect.setColor(QColor(0, 0, 0, 55))
         self.setGraphicsEffect(effect)
+        self._retranslations = []
+        translator.language_changed.connect(self._retranslate)
 
-    def _section_label(self, text: str) -> QLabel:
-        label = QLabel(text)
+    def _retranslate(self, _lang=None):
+        for fn in self._retranslations:
+            fn()
+
+    def _section_label(self, key: str) -> QLabel:
+        label = QLabel(tr(key))
         label.setObjectName("sectionLabel")
+        self._retranslations.append(lambda l=label, k=key: l.setText(tr(k)))
         return label
+
+    def _tooltip(self, widget, key: str):
+        widget.setToolTip(tr(key))
+        self._retranslations.append(lambda w=widget, k=key: w.setToolTip(tr(k)))
+
+    def _button_text(self, widget, key: str):
+        widget.setText(tr(key))
+        self._retranslations.append(lambda w=widget, k=key: w.setText(tr(k)))
 
     def _vseparator(self) -> QFrame:
         line = QFrame()
@@ -143,7 +161,7 @@ class _IslandPanel(QFrame):
         custom_btn.setFixedSize(34, 34)
         custom_btn.setIcon(icons.custom_color_icon())
         custom_btn.setIconSize(QSize(22, 22))
-        custom_btn.setToolTip("Własny kolor…")
+        self._tooltip(custom_btn, "custom_color")
         group.addButton(custom_btn)
         row.addWidget(custom_btn)
 
@@ -178,7 +196,7 @@ class ArrowPropertiesPanel(_IslandPanel):
     def _build_color_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Kolor"))
+        col.addWidget(self._section_label("color"))
         row, self.color_group, self._color_buttons, self.custom_color_btn = self._color_row(
             ARROW_PALETTE, ARROW_PALETTE[1], self.color_changed.emit
         )
@@ -189,25 +207,25 @@ class ArrowPropertiesPanel(_IslandPanel):
     def _build_thickness_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Grubość"))
+        col.addWidget(self._section_label("thickness"))
         row = QHBoxLayout()
         row.setSpacing(6)
 
         self.thickness_group = QButtonGroup(self)
         self.thickness_group.setExclusive(True)
         self._thickness_buttons = {}
-        for label, value in THICKNESS_OPTIONS:
+        for key, value in THICKNESS_OPTIONS:
             btn = QToolButton()
             btn.setCheckable(True)
             btn.setFixedSize(38, 34)
             btn.setIcon(icons.thickness_icon(value + 1))
             btn.setIconSize(QSize(26, 20))
-            btn.setToolTip(label)
+            self._tooltip(btn, key)
             btn.clicked.connect(lambda _checked, v=value: self.thickness_changed.emit(v))
             self.thickness_group.addButton(btn)
             row.addWidget(btn)
             self._thickness_buttons[value] = btn
-            if label == "Średnia":
+            if key == "thickness_medium":
                 btn.setChecked(True)
 
         col.addLayout(row)
@@ -216,20 +234,20 @@ class ArrowPropertiesPanel(_IslandPanel):
     def _build_style_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Kształt"))
+        col.addWidget(self._section_label("shape"))
         row = QHBoxLayout()
         row.setSpacing(6)
 
         self.style_group = QButtonGroup(self)
         self.style_group.setExclusive(True)
         self._style_buttons = {}
-        for label, style in ARROW_STYLE_OPTIONS:
+        for key, style in ARROW_STYLE_OPTIONS:
             btn = QToolButton()
             btn.setCheckable(True)
             btn.setFixedSize(38, 34)
             btn.setIcon(icons.arrow_style_icon(style))
             btn.setIconSize(QSize(26, 26))
-            btn.setToolTip(label)
+            self._tooltip(btn, key)
             btn.clicked.connect(lambda _checked, s=style: self.style_changed.emit(s))
             self.style_group.addButton(btn)
             row.addWidget(btn)
@@ -243,13 +261,13 @@ class ArrowPropertiesPanel(_IslandPanel):
     def _build_shadow_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Cień"))
+        col.addWidget(self._section_label("shadow"))
         self.shadow_btn = QToolButton()
         self.shadow_btn.setCheckable(True)
         self.shadow_btn.setFixedSize(38, 34)
         self.shadow_btn.setIcon(icons.shadow_icon())
         self.shadow_btn.setIconSize(QSize(24, 24))
-        self.shadow_btn.setToolTip("Włącz cień pod strzałką")
+        self._tooltip(self.shadow_btn, "shadow_tooltip_arrow")
         self.shadow_btn.toggled.connect(self.shadow_toggled.emit)
         col.addWidget(self.shadow_btn)
         return col
@@ -267,7 +285,7 @@ class ArrowPropertiesPanel(_IslandPanel):
         self.shadow_btn.blockSignals(False)
 
     def _pick_custom_color(self):
-        color = QColorDialog.getColor(QColor("#e53935"), self, "Własny kolor strzałki")
+        color = QColorDialog.getColor(QColor("#e53935"), self, tr("custom_color_arrow"))
         if color.isValid():
             self.custom_color_btn.setIcon(icons.circle_swatch_icon(color))
             self.custom_color_btn.setChecked(True)
@@ -321,7 +339,7 @@ class BubblePropertiesPanel(_IslandPanel):
     def _build_color_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Kolor"))
+        col.addWidget(self._section_label("color"))
         row, self.color_group, self._color_buttons, self.custom_color_btn = self._color_row(
             BUBBLE_PALETTE, BUBBLE_PALETTE[0], self.color_changed.emit
         )
@@ -332,20 +350,20 @@ class BubblePropertiesPanel(_IslandPanel):
     def _build_shape_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Kształt"))
+        col.addWidget(self._section_label("shape"))
         row = QHBoxLayout()
         row.setSpacing(6)
 
         self.shape_group = QButtonGroup(self)
         self.shape_group.setExclusive(True)
         self._shape_buttons = {}
-        for label, shape in BUBBLE_SHAPE_OPTIONS:
+        for key, shape in BUBBLE_SHAPE_OPTIONS:
             btn = QToolButton()
             btn.setCheckable(True)
             btn.setFixedSize(38, 34)
             btn.setIcon(icons.bubble_shape_icon(shape))
             btn.setIconSize(QSize(26, 24))
-            btn.setToolTip(label)
+            self._tooltip(btn, key)
             btn.clicked.connect(lambda _checked, s=shape: self.shape_changed.emit(s))
             self.shape_group.addButton(btn)
             row.addWidget(btn)
@@ -359,14 +377,14 @@ class BubblePropertiesPanel(_IslandPanel):
     def _build_border_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Obramowanie"))
+        col.addWidget(self._section_label("border"))
         self.border_btn = QToolButton()
         self.border_btn.setCheckable(True)
         self.border_btn.setChecked(False)
         self.border_btn.setFixedSize(38, 34)
         self.border_btn.setIcon(icons.border_icon())
         self.border_btn.setIconSize(QSize(22, 22))
-        self.border_btn.setToolTip("Pokaż obramowanie dymka")
+        self._tooltip(self.border_btn, "bubble_border_tooltip")
         self.border_btn.toggled.connect(self.border_toggled.emit)
         col.addWidget(self.border_btn)
         return col
@@ -374,13 +392,13 @@ class BubblePropertiesPanel(_IslandPanel):
     def _build_shadow_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Cień"))
+        col.addWidget(self._section_label("shadow"))
         self.shadow_btn = QToolButton()
         self.shadow_btn.setCheckable(True)
         self.shadow_btn.setFixedSize(38, 34)
         self.shadow_btn.setIcon(icons.shadow_icon())
         self.shadow_btn.setIconSize(QSize(24, 24))
-        self.shadow_btn.setToolTip("Włącz cień pod dymkiem")
+        self._tooltip(self.shadow_btn, "shadow_tooltip_bubble")
         self.shadow_btn.toggled.connect(self.shadow_toggled.emit)
         col.addWidget(self.shadow_btn)
         return col
@@ -388,13 +406,14 @@ class BubblePropertiesPanel(_IslandPanel):
     def _build_text_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Tekst"))
+        col.addWidget(self._section_label("text"))
         row = QHBoxLayout()
         row.setSpacing(8)
 
         self.text_edit = QLineEdit()
-        self.text_edit.setPlaceholderText("Wpisz tekst dymka…")
-        self.text_edit.setText("Tekst")
+        self.text_edit.setPlaceholderText(tr("bubble_text_placeholder"))
+        self._retranslations.append(lambda: self.text_edit.setPlaceholderText(tr("bubble_text_placeholder")))
+        self.text_edit.setText(tr("default_bubble_text"))
         self.text_edit.setMinimumWidth(180)
         self.text_edit.textChanged.connect(self.text_changed.emit)
         row.addWidget(self.text_edit, 1)
@@ -418,7 +437,7 @@ class BubblePropertiesPanel(_IslandPanel):
         self.bold_btn.setFixedSize(34, 34)
         self.bold_btn.setIcon(icons.bold_icon())
         self.bold_btn.setIconSize(QSize(20, 20))
-        self.bold_btn.setToolTip("Pogrubienie")
+        self._tooltip(self.bold_btn, "bold")
         self.bold_btn.toggled.connect(self.bold_toggled.emit)
         row.addWidget(self.bold_btn)
 
@@ -427,21 +446,21 @@ class BubblePropertiesPanel(_IslandPanel):
         self.text_shadow_btn.setFixedSize(34, 34)
         self.text_shadow_btn.setIcon(icons.text_shadow_icon())
         self.text_shadow_btn.setIconSize(QSize(20, 20))
-        self.text_shadow_btn.setToolTip("Cień tekstu")
+        self._tooltip(self.text_shadow_btn, "text_shadow_tooltip")
         self.text_shadow_btn.toggled.connect(self.text_shadow_toggled.emit)
         row.addWidget(self.text_shadow_btn)
 
         self.text_color_group = QButtonGroup(self)
         self.text_color_group.setExclusive(True)
         self._text_color_buttons = {}
-        for color, tooltip in [(QColor("#1e1e1e"), "Czarny tekst"), (QColor("#ffffff"), "Biały tekst")]:
+        for color, key in TEXT_COLOR_OPTIONS:
             btn = QToolButton()
             btn.setCheckable(True)
             btn.setProperty("swatch", "true")
             btn.setFixedSize(34, 34)
             btn.setIcon(icons.circle_swatch_icon(color))
             btn.setIconSize(QSize(22, 22))
-            btn.setToolTip(tooltip)
+            self._tooltip(btn, key)
             btn.clicked.connect(lambda _checked, c=color: self.text_color_changed.emit(c))
             self.text_color_group.addButton(btn)
             row.addWidget(btn)
@@ -453,7 +472,7 @@ class BubblePropertiesPanel(_IslandPanel):
         return col
 
     def _pick_custom_color(self):
-        color = QColorDialog.getColor(QColor("#ffffff"), self, "Własny kolor dymka")
+        color = QColorDialog.getColor(QColor("#ffffff"), self, tr("custom_color_bubble"))
         if color.isValid():
             self.custom_color_btn.setIcon(icons.circle_swatch_icon(color))
             self.custom_color_btn.setChecked(True)
@@ -543,7 +562,7 @@ class TextPropertiesPanel(_IslandPanel):
     def _build_color_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Kolor"))
+        col.addWidget(self._section_label("color"))
         row, self.color_group, self._color_buttons, self.custom_color_btn = self._color_row(
             TEXT_PALETTE, TEXT_PALETTE[0], self.color_changed.emit
         )
@@ -554,7 +573,7 @@ class TextPropertiesPanel(_IslandPanel):
     def _build_font_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Czcionka"))
+        col.addWidget(self._section_label("font"))
         row = QHBoxLayout()
         row.setSpacing(8)
 
@@ -577,14 +596,14 @@ class TextPropertiesPanel(_IslandPanel):
     def _build_bold_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Pogrubienie"))
+        col.addWidget(self._section_label("bold"))
         self.bold_btn = QToolButton()
         self.bold_btn.setCheckable(True)
         self.bold_btn.setChecked(True)
         self.bold_btn.setFixedSize(38, 34)
         self.bold_btn.setIcon(icons.bold_icon())
         self.bold_btn.setIconSize(QSize(20, 20))
-        self.bold_btn.setToolTip("Pogrubienie")
+        self._tooltip(self.bold_btn, "bold")
         self.bold_btn.toggled.connect(self.bold_toggled.emit)
         col.addWidget(self.bold_btn)
         return col
@@ -592,19 +611,19 @@ class TextPropertiesPanel(_IslandPanel):
     def _build_shadow_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Cień"))
+        col.addWidget(self._section_label("shadow"))
         self.shadow_btn = QToolButton()
         self.shadow_btn.setCheckable(True)
         self.shadow_btn.setFixedSize(38, 34)
         self.shadow_btn.setIcon(icons.text_shadow_icon())
         self.shadow_btn.setIconSize(QSize(22, 22))
-        self.shadow_btn.setToolTip("Cień tekstu")
+        self._tooltip(self.shadow_btn, "text_shadow_tooltip")
         self.shadow_btn.toggled.connect(self.shadow_toggled.emit)
         col.addWidget(self.shadow_btn)
         return col
 
     def _pick_custom_color(self):
-        color = QColorDialog.getColor(QColor("#1e1e1e"), self, "Własny kolor tekstu")
+        color = QColorDialog.getColor(QColor("#1e1e1e"), self, tr("custom_color_text"))
         if color.isValid():
             self.custom_color_btn.setIcon(icons.circle_swatch_icon(color))
             self.custom_color_btn.setChecked(True)
@@ -661,7 +680,7 @@ class FramePropertiesPanel(_IslandPanel):
     def _build_color_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Kolor"))
+        col.addWidget(self._section_label("color"))
         row, self.color_group, self._color_buttons, self.custom_color_btn = self._color_row(
             FRAME_PALETTE, FRAME_PALETTE[0], self.color_changed.emit
         )
@@ -672,25 +691,25 @@ class FramePropertiesPanel(_IslandPanel):
     def _build_thickness_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Grubość"))
+        col.addWidget(self._section_label("thickness"))
         row = QHBoxLayout()
         row.setSpacing(6)
 
         self.thickness_group = QButtonGroup(self)
         self.thickness_group.setExclusive(True)
         self._thickness_buttons = {}
-        for label, value in THICKNESS_OPTIONS:
+        for key, value in THICKNESS_OPTIONS:
             btn = QToolButton()
             btn.setCheckable(True)
             btn.setFixedSize(38, 34)
             btn.setIcon(icons.thickness_icon(value + 1))
             btn.setIconSize(QSize(26, 20))
-            btn.setToolTip(label)
+            self._tooltip(btn, key)
             btn.clicked.connect(lambda _checked, v=value: self.thickness_changed.emit(v))
             self.thickness_group.addButton(btn)
             row.addWidget(btn)
             self._thickness_buttons[value] = btn
-            if label == "Średnia":
+            if key == "thickness_medium":
                 btn.setChecked(True)
 
         col.addLayout(row)
@@ -699,20 +718,20 @@ class FramePropertiesPanel(_IslandPanel):
     def _build_corner_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Rogi"))
+        col.addWidget(self._section_label("corners"))
         row = QHBoxLayout()
         row.setSpacing(6)
 
         self.corner_group = QButtonGroup(self)
         self.corner_group.setExclusive(True)
         self._corner_buttons = {}
-        for label, rounded in CORNER_OPTIONS:
+        for key, rounded in CORNER_OPTIONS:
             btn = QToolButton()
             btn.setCheckable(True)
             btn.setFixedSize(38, 34)
             btn.setIcon(icons.corner_style_icon(rounded))
             btn.setIconSize(QSize(24, 22))
-            btn.setToolTip(label)
+            self._tooltip(btn, key)
             btn.clicked.connect(lambda _checked, r=rounded: self.rounded_toggled.emit(r))
             self.corner_group.addButton(btn)
             row.addWidget(btn)
@@ -726,19 +745,19 @@ class FramePropertiesPanel(_IslandPanel):
     def _build_shadow_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Cień"))
+        col.addWidget(self._section_label("shadow"))
         self.shadow_btn = QToolButton()
         self.shadow_btn.setCheckable(True)
         self.shadow_btn.setFixedSize(38, 34)
         self.shadow_btn.setIcon(icons.shadow_icon())
         self.shadow_btn.setIconSize(QSize(24, 24))
-        self.shadow_btn.setToolTip("Włącz cień pod ramką")
+        self._tooltip(self.shadow_btn, "shadow_tooltip_frame")
         self.shadow_btn.toggled.connect(self.shadow_toggled.emit)
         col.addWidget(self.shadow_btn)
         return col
 
     def _pick_custom_color(self):
-        color = QColorDialog.getColor(QColor("#e53935"), self, "Własny kolor ramki")
+        color = QColorDialog.getColor(QColor("#e53935"), self, tr("custom_color_frame"))
         if color.isValid():
             self.custom_color_btn.setIcon(icons.circle_swatch_icon(color))
             self.custom_color_btn.setChecked(True)
@@ -788,20 +807,20 @@ class StickerPropertiesPanel(_IslandPanel):
     def _build_kind_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Naklejka"))
+        col.addWidget(self._section_label("sticker_kind_section"))
         row = QHBoxLayout()
         row.setSpacing(6)
 
         self.kind_group = QButtonGroup(self)
         self.kind_group.setExclusive(True)
         self._kind_buttons = {}
-        for label, kind in STICKER_OPTIONS:
+        for key, kind in STICKER_OPTIONS:
             btn = QToolButton()
             btn.setCheckable(True)
             btn.setFixedSize(38, 34)
             btn.setIcon(icons.sticker_icon(kind))
             btn.setIconSize(QSize(26, 26))
-            btn.setToolTip(label)
+            self._tooltip(btn, key)
             btn.clicked.connect(lambda _checked, k=kind: self.kind_changed.emit(k))
             self.kind_group.addButton(btn)
             row.addWidget(btn)
@@ -815,7 +834,7 @@ class StickerPropertiesPanel(_IslandPanel):
     def _build_color_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Kolor"))
+        col.addWidget(self._section_label("color"))
         row, self.color_group, self._color_buttons, self.custom_color_btn = self._color_row(
             STICKER_PALETTE, STICKER_PALETTE[0], self.color_changed.emit
         )
@@ -826,7 +845,7 @@ class StickerPropertiesPanel(_IslandPanel):
     def _build_size_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Rozmiar"))
+        col.addWidget(self._section_label("size"))
         self.size_spin = QSpinBox()
         self.size_spin.setRange(16, 160)
         self.size_spin.setValue(48)
@@ -839,19 +858,19 @@ class StickerPropertiesPanel(_IslandPanel):
     def _build_shadow_section(self) -> QVBoxLayout:
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Cień"))
+        col.addWidget(self._section_label("shadow"))
         self.shadow_btn = QToolButton()
         self.shadow_btn.setCheckable(True)
         self.shadow_btn.setFixedSize(38, 34)
         self.shadow_btn.setIcon(icons.shadow_icon())
         self.shadow_btn.setIconSize(QSize(24, 24))
-        self.shadow_btn.setToolTip("Włącz cień pod naklejką")
+        self._tooltip(self.shadow_btn, "shadow_tooltip_sticker")
         self.shadow_btn.toggled.connect(self.shadow_toggled.emit)
         col.addWidget(self.shadow_btn)
         return col
 
     def _pick_custom_color(self):
-        color = QColorDialog.getColor(QColor("#e53935"), self, "Własny kolor naklejki")
+        color = QColorDialog.getColor(QColor("#e53935"), self, tr("custom_color_sticker"))
         if color.isValid():
             self.custom_color_btn.setIcon(icons.circle_swatch_icon(color))
             self.custom_color_btn.setChecked(True)
@@ -888,7 +907,7 @@ class BlurPropertiesPanel(_IslandPanel):
 
         col = QVBoxLayout()
         col.setSpacing(6)
-        col.addWidget(self._section_label("Intensywność pikselizacji"))
+        col.addWidget(self._section_label("blur_intensity"))
         self.size_spin = QSpinBox()
         self.size_spin.setRange(4, 60)
         self.size_spin.setValue(14)
@@ -898,9 +917,7 @@ class BlurPropertiesPanel(_IslandPanel):
         col.addWidget(self.size_spin)
         outer.addLayout(col)
 
-        hint = QLabel("Przeciągnij po obszarze, który chcesz zasłonić")
-        hint.setObjectName("sectionLabel")
-        outer.addWidget(hint)
+        outer.addWidget(self._section_label("blur_hint"))
         outer.addStretch(1)
 
     def sync_from(self, pixel_size: int):
@@ -922,18 +939,18 @@ class CropPropertiesPanel(_IslandPanel):
         outer.setContentsMargins(18, 10, 18, 10)
         outer.setSpacing(12)
 
-        hint = QLabel("Przeciągnij, aby zaznaczyć obszar przycięcia")
-        hint.setObjectName("sectionLabel")
-        outer.addWidget(hint)
+        outer.addWidget(self._section_label("crop_hint"))
         outer.addStretch(1)
 
-        self.cancel_btn = QPushButton("Anuluj")
+        self.cancel_btn = QPushButton()
         self.cancel_btn.setObjectName("panelSecondaryButton")
+        self._button_text(self.cancel_btn, "crop_cancel")
         self.cancel_btn.clicked.connect(self.cancel_clicked.emit)
         outer.addWidget(self.cancel_btn)
 
-        self.apply_btn = QPushButton("Zastosuj przycinanie")
+        self.apply_btn = QPushButton()
         self.apply_btn.setObjectName("panelPrimaryButton")
+        self._button_text(self.apply_btn, "crop_apply")
         self.apply_btn.setEnabled(False)
         self.apply_btn.clicked.connect(self.apply_clicked.emit)
         outer.addWidget(self.apply_btn)
